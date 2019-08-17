@@ -1,0 +1,34 @@
+<head>
+<style>
+    .container {
+        width: calc(90vw - 30px);
+        margin-left: 5vw;
+        margin-right: 5vw;
+        margin-top: 30px;
+        display: block;
+        border: 15px solid #af1515;
+        font-family: arial; 
+    }
+
+    .title {
+        font-size: 25px;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px;
+    }
+
+    .content {
+        font-family: courier;
+        padding: 20px;
+        word-break: break-all;
+        white-space: pre-wrap;
+    }
+</style>
+<title>Error</title>
+</head>
+
+<div class="container">
+    <div class="title">The error page could not be displayed. Here is the error text.</div>
+    <hr>
+    <div class="content"><%=error%></div>
+</div>
