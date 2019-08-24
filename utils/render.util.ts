@@ -16,8 +16,7 @@ export default abstract class RenderUtil {
             .then(html => {
                 res.write(html);
                 res.end(() => {
-                    const characters = html.length;
-                    Debug.logTiming(`Rendered ${viewName}: ${characters} chars`, timeStart, undefined, this.moduleName);
+                    Debug.logTiming(`Rendered ${viewName}`, timeStart, undefined, this.moduleName);
                     resolve(html);
                 });
             }).catch(error => {

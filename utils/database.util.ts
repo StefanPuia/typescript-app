@@ -43,7 +43,7 @@ export default abstract class DatabaseUtil {
         });
     }
 
-    public static transactPromise(query: string = '', inserts?: Array<any>) {
+    public static transactPromise(query: string = '', inserts?: Array<any>): Promise<Function> {
         return new Promise((resolve, reject) => {
             this.transact(query, inserts, reject, resolve);
         })

@@ -28,6 +28,11 @@ export default class Screen {
         this.beforeRenderFunction = beforeRender || RenderUtil.blankRenderFunction;
         this.afterRenderFunction = afterRender || RenderUtil.blankRenderFunction;
         this.hasHandler = !!errorHandler;
+
+        if(req.params) {
+            this.contextObject.parameters = {};
+            Object.assign(this.contextObject.parameters, req.params);
+        }
         return this;
     }
 
