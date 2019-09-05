@@ -6,9 +6,10 @@ export abstract class GenericValue {
     protected abstract data?: any;
     private primaryFieldValue: any;
 
-    constructor() { }
+    protected constructor() { }
 
     public abstract find(id: any): any;
+    public static create(): void { }
 
     protected doSelect(id: any, caseSensitive: boolean = true): Promise<any> {
         this.primaryFieldValue = id;
@@ -30,9 +31,13 @@ export abstract class GenericValue {
     }
 
     protected doSelectAll(condition: string = "", inserts: any[] = []): Promise<any[]> {
+        return GenericValue.doSelectAll(this.entity, condition, inserts);
+    }
+
+    protected static doSelectAll(entity: string, condition: string = "", inserts: any[] = []): Promise<any[]> {
         let whereClause = condition ? "where " + condition : "";
         return new Promise((resolve, reject) => {
-            DatabaseUtil.transactPromise(`select * from ${this.entity} ${whereClause}`, inserts)
+            DatabaseUtil.transactPromise(`select * from ${entity} ${whereClause}`, inserts)
             .then((data: any) => {
                 resolve(data);
             }).catch(reject);
@@ -56,17 +61,13 @@ export abstract class GenericValue {
         }
     }
 
-    public create(): Promise<Function> {
-        return DatabaseUtil.transactPromise(`insert into ${this.entity} set ?`, [this.data]);
-    }
-
     public update(): Promise<Function> {
         return DatabaseUtil.transactPromise(`update ${this.entity} set ? where ${this.primaryKeyField} = ?`, [this.data, this.primaryFieldValue]);
     }
 
     public store(): Promise<Function> {
         return new Promise((resolve, reject) => {
-            this.create()
+            DatabaseUtil.transactPromise(`insert into ${this.entity} set ?`, [this.data])
             .then(resolve)
             .catch(err => {
                 this.update().then(resolve).catch(reject);
