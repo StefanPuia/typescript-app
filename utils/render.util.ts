@@ -61,13 +61,12 @@ export default abstract class RenderUtil {
 
     private static handleRenderModifier(func: RenderModifier, req: Request, res: Response, context: GenericObject) {
         return new Promise((resolve, reject) => {
-            let modifierResult = func(req, res, context, (err: any) => {
-                if (err) reject(err);
-                resolve();
-            });
+            let modifierResult = func(req, res, context);
 
             if (modifierResult instanceof Promise) {
                 modifierResult.then(resolve).catch(reject);
+            } else {
+                resolve();
             }
         });
     }
@@ -94,5 +93,5 @@ export default abstract class RenderUtil {
 }
 
 export interface RenderModifier {
-    (req: Request, res: Response, context: GenericObject, cb?: any): Promise<any> | void
+    (req: Request, res: Response, context: GenericObject): Promise<any> | void
 }

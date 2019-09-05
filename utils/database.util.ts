@@ -154,7 +154,7 @@ export default abstract class DatabaseUtil {
                                 let existingEntity: any = entityInfo[0];
 
                                 if (!existingEntity || existingEntity.length === 0) {
-                                    Debug.logDebug(`Entity '${entity.name}' does not exist. Not dropping.`, DatabaseUtil.moduleName);
+                                    Debug.logInfo(`Entity '${entity.name}' does not exist. Not dropping.`, DatabaseUtil.moduleName);
                                     return resolve();
                                 }
 
@@ -214,7 +214,7 @@ export default abstract class DatabaseUtil {
                 let existingEntity: any = entityInfo[0];
 
                 if (existingEntity && existingEntity.length !== 0) {
-                    Debug.logDebug(`Entity '${entity.name}' already exists. Not creating.`, DatabaseUtil.moduleName);
+                    Debug.logInfo(`Entity '${entity.name}' already exists. Not creating.`, DatabaseUtil.moduleName);
                     return resolve();
                 }
 
@@ -300,7 +300,7 @@ export default abstract class DatabaseUtil {
                 let existingConstraints: any = entityInfo[2];
 
                 if (!existingEntity || existingEntity.length === 0) {
-                    Debug.logDebug(`Entity '${entity.name}' does not exist. Not extending.`, DatabaseUtil.moduleName);
+                    Debug.logInfo(`Entity '${entity.name}' does not exist. Not extending.`, DatabaseUtil.moduleName);
                     return resolve();
                 }
 
