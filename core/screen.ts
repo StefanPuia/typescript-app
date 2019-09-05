@@ -1,7 +1,7 @@
 import { RenderModifier } from '../utils/render.util';
 import { Request, Response } from 'express';
 import RenderUtil from '../utils/render.util';
-import Config from '../config/base.config';
+import BaseConfig from '../config/base.config';
 
 export default class Screen {
     private viewName: string;
@@ -14,7 +14,7 @@ export default class Screen {
     private afterRenderFunction: RenderModifier;
     private quiet: boolean = false;
     private hasHandler: boolean = false;
-    private cacheView: boolean = Config.cacheViews;
+    private cacheView: boolean = BaseConfig.cacheViews;
 
     private constructor(viewName: string, req: Request, res: Response, errorHandler?: Function,
             context?: GenericObject, status?: number, beforeRender?: RenderModifier,
@@ -22,7 +22,7 @@ export default class Screen {
         this.viewName = viewName;
         this.request = req;
         this.response = res;
-        this.errorHandlerFunction = errorHandler || Config.screenErrorHandler || RenderUtil.defaultErrorHandler;
+        this.errorHandlerFunction = errorHandler || BaseConfig.screenErrorHandler || RenderUtil.defaultErrorHandler;
         this.contextObject = context || {};
         this.statusId = status || 200;
         this.beforeRenderFunction = beforeRender || RenderUtil.blankRenderFunction;

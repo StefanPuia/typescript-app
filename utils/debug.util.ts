@@ -1,6 +1,6 @@
 import dateFormat from 'dateformat';
 import BaseUtil from './base.util';
-import Config from '../config/base.config';
+import BaseConfig from '../config/base.config';
 
 export default abstract class Debug {
     public static readonly TIMING: number = 0;
@@ -11,27 +11,27 @@ export default abstract class Debug {
     public static readonly FATAL: number = 5;
 
     public static logTiming(message: any, timeStart: number, timeEnd: number = new Date().getTime(), errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.TIMING) Debug.log(message + ` (${timeEnd - timeStart}ms)`, 'TIMING', errModule, path);
+        if (BaseConfig.logLevel <= this.TIMING) Debug.log(message + ` (${timeEnd - timeStart}ms)`, 'TIMING', errModule, path);
     }
 
     public static logDebug(message: any, errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.DEBUG) Debug.log(message, 'DEBUG', errModule, path);
+        if (BaseConfig.logLevel <= this.DEBUG) Debug.log(message, 'DEBUG', errModule, path);
     }
 
     public static logInfo(message: any, errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.INFO) Debug.log(message, 'INFO', errModule, path);
+        if (BaseConfig.logLevel <= this.INFO) Debug.log(message, 'INFO', errModule, path);
     }
 
     public static logWarning(message: any, errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.WARNING) Debug.log(message, 'WARNING', errModule, path);
+        if (BaseConfig.logLevel <= this.WARNING) Debug.log(message, 'WARNING', errModule, path);
     }
 
     public static logError(message: any, errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.ERROR) Debug.log(message, 'ERROR', errModule, path, true);
+        if (BaseConfig.logLevel <= this.ERROR) Debug.log(message, 'ERROR', errModule, path, true);
     }
 
     public static logFatal(message: any, errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.FATAL) Debug.log(message, 'FATAL', errModule, path, true);
+        if (BaseConfig.logLevel <= this.FATAL) Debug.log(message, 'FATAL', errModule, path, true);
     }
 
     private static log(message: any = '', type: string = 'DEBUG', errModule: string = 'NoModule', path: string = '', trace: boolean = false): void {

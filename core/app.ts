@@ -1,15 +1,15 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import Config from '../config/base.config';
+import BaseConfig from '../config/base.config';
 
 const app = express();
-app.set('port', Config.port);
+app.set('port', BaseConfig.port);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.set('view engine', 'ejs');
-app.set('views', Config.viewsLocation);
+app.set('views', BaseConfig.viewsLocation);
 
 export default app;

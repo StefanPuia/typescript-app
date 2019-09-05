@@ -1,6 +1,6 @@
 import path from 'path';
 
-export default abstract class Config {
+export default abstract class BaseConfig {
     public static logFullQuery: boolean = false;
     public static viewsLocation: string = path.join(__dirname, '../views');
     public static port = 8080;

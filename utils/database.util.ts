@@ -1,5 +1,5 @@
 import mysql from 'mysql2';
-import Config from '../config/base.config';
+import BaseConfig from '../config/base.config';
 import Debug from './debug.util';
 import BaseUtil from './base.util';
 
@@ -10,7 +10,7 @@ export default abstract class DatabaseUtil {
     private static databaseConfig: DatabaseConnection;
     private static entityDefinitions: Array<EntityDefinition>;
     private static databaseFormatMode: number = 0;
-    private static readonly MODE = {
+    public static readonly MODE = {
         REBUILD: 3,
         EXTEND: 2,
         CREATE: 1,
@@ -86,7 +86,7 @@ export default abstract class DatabaseUtil {
         let queryStart = new Date().getTime();
         query = query.replace(/\s+/gm, ' ');
         let sql = this.mysqlConnection.format(query, inserts);
-        let logSql = Config.logFullQuery ? sql : query;
+        let logSql = BaseConfig.logFullQuery ? sql : query;
         this.mysqlConnection.beginTransaction((err: any) => {
             if (err) {
                 Debug.logError(err, 'DatabaseUtil.TransactBegin');
@@ -139,17 +139,37 @@ export default abstract class DatabaseUtil {
     }
 
     private static dropTables(): Promise<Function> {
-        let tableDrops: Array<Promise<Function>> = [];
-        if (DatabaseUtil.entityDefinitions) {
-            for (let entity of DatabaseUtil.entityDefinitions) {
-                tableDrops.push(DatabaseUtil.transactPromise(`drop table if exists ${entity.name}`));
-            }
-        }
-
         return new Promise((resolve: any, reject: any) => {
-            Promise.all(tableDrops).then(() => {
-                Debug.logInfo(`Tried dropping ${tableDrops.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
-                            x => x.name).join("','")}']`, DatabaseUtil.moduleName);
+            let droppedTables: Array<string> = [];
+            let tableDrops: Array<Function> = [];
+            if (DatabaseUtil.entityDefinitions) {
+                // reversing definitions to resolve dependencies
+                let reversedDefinitions = DatabaseUtil.entityDefinitions.slice().reverse();
+                for (let entity of reversedDefinitions) {
+                    tableDrops.push(() => {
+                        return new Promise((resolve, reject) => {
+                            Promise.all([
+                                DatabaseUtil.transactPromise(`SELECT table_name FROM information_schema.TABLES WHERE TABLE_NAME = ?`, [entity.name])
+                            ]).then(entityInfo => {
+                                let existingEntity: any = entityInfo[0];
+
+                                if (!existingEntity || existingEntity.length === 0) {
+                                    Debug.logDebug(`Entity '${entity.name}' does not exist. Not dropping.`, DatabaseUtil.moduleName);
+                                    return resolve();
+                                }
+
+                                droppedTables.push(entity.name);
+                                DatabaseUtil.transactPromise(`drop table if exists ${entity.name}`).then(resolve).catch(reject);
+                            }).catch(reject);
+                        });
+                    });
+                }
+            }
+
+            BaseUtil.queuePromises(tableDrops).then(() => {
+                if (droppedTables.length) {
+                    Debug.logInfo(`Dropped ${droppedTables.length} table(s): ['${droppedTables.join("','")}']`, DatabaseUtil.moduleName);
+                }
                 resolve();
             }).catch(reject);
         });
@@ -178,7 +198,7 @@ export default abstract class DatabaseUtil {
 
             BaseUtil.queuePromises(tableCreates).then(() => {
                 if (createdTables.length) {
-                    Debug.logInfo(`Tried creating ${createdTables.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
+                    Debug.logInfo(`Created ${createdTables.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
                         x => x.name).join("','")}']`, DatabaseUtil.moduleName);
                 }
                 resolve();
@@ -193,7 +213,7 @@ export default abstract class DatabaseUtil {
             ]).then(entityInfo => {
                 let existingEntity: any = entityInfo[0];
 
-                if (existingEntity && existingEntity.lenght !== 0) {
+                if (existingEntity && existingEntity.length !== 0) {
                     Debug.logDebug(`Entity '${entity.name}' already exists. Not creating.`, DatabaseUtil.moduleName);
                     return resolve();
                 }
@@ -279,7 +299,7 @@ export default abstract class DatabaseUtil {
                 let existingFields: any = entityInfo[1];
                 let existingConstraints: any = entityInfo[2];
 
-                if (!existingEntity || existingEntity.lenght === 0) {
+                if (!existingEntity || existingEntity.length === 0) {
                     Debug.logDebug(`Entity '${entity.name}' does not exist. Not extending.`, DatabaseUtil.moduleName);
                     return resolve();
                 }
