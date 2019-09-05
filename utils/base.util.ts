@@ -13,10 +13,7 @@ export default abstract class BaseUtil {
         }
     }
 
-    public static groupJSON(array: Array<GenericObject>, field: string, groupname: string, keep: Array<string>): Array<GenericObject> {
-        keep = !!keep ? keep : []
-        groupname = !!groupname ? groupname : 'grouped'
-
+    public static groupBy(array: Array<GenericObject>, field: string, groupname: string = field, keep: Array<string> = []): Array<GenericObject> {
         let result: Array<GenericObject> = [];
         array.forEach(el => {
             let temp = Object.assign({}, el);

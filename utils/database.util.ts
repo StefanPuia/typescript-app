@@ -8,9 +8,9 @@ export default abstract class DatabaseUtil {
     private static readonly moduleName: string = 'DatabaseUtil';
     private static databaseConfig: DatabaseConnection;
 
-    public static init(): void {
+    public static init(databaseConfig: DatabaseConnection): void {
         if (!this.initialized) {
-            DatabaseUtil.databaseConfig = Config.databaseConfig;
+            DatabaseUtil.databaseConfig = databaseConfig;
             if (!DatabaseUtil.databaseConfig) {
                 Debug.logFatal("Database config not set");
                 return;

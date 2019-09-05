@@ -14,12 +14,12 @@ export default abstract class RenderUtil {
             const timeStart = new Date().getTime();
             this.renderPromise(viewName, req, res, context, status, beforeRender, afterRender)
             .then(html => {
-                res.write(html);
-                res.end(() => {
+                res.send(html).end(() => {
                     Debug.logTiming(`Rendered ${viewName}`, timeStart, undefined, this.moduleName);
                     resolve(html);
                 });
             }).catch(error => {
+                Debug.logError(error, this.moduleName);
                 res.status(500).render(RenderUtil.staticError, {
                     error: error
                 });
