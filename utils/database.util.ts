@@ -1,23 +1,43 @@
 import mysql from 'mysql2';
 import Config from '../config/base.config';
 import Debug from './debug.util';
+import BaseUtil from './base.util';
 
 export default abstract class DatabaseUtil {
     private static mysqlConnection: mysql.Connection;
     private static initialized: boolean = false;
     private static readonly moduleName: string = 'DatabaseUtil';
     private static databaseConfig: DatabaseConnection;
+    private static entityDefinitions: Array<EntityDefinition>;
+    private static databaseFormatMode: number = 0;
+    private static readonly MODE = {
+        REBUILD: 3,
+        EXTEND: 2,
+        CREATE: 1,
+        IGNORE: 0
+    }
+    private static readonly timestampFields: Array<FieldDefinition> = [{
+        "name": "created_stamp",
+        "type": "TIMESTAMP",
+        "default": "CURRENT_TIMESTAMP",
+        "notNull": true
+    }, {
+        "name": "last_updated_stamp",
+        "type": "TIMESTAMP",
+        "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "notNull": true,
+    }]
 
-    public static init(databaseConfig: DatabaseConnection): void {
+    public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, entityDefinitions: Array<EntityDefinition>): void {
         if (!this.initialized) {
             DatabaseUtil.databaseConfig = databaseConfig;
+            DatabaseUtil.databaseFormatMode = databaseFormatMode;
+            DatabaseUtil.entityDefinitions = entityDefinitions;
             if (!DatabaseUtil.databaseConfig) {
                 Debug.logFatal("Database config not set");
                 return;
             }
-            this.initialized = true;
             this.handleDisconnect();
-            Debug.logInfo('DatabaseUtil initialized successfully', this.moduleName);
         } else {
             Debug.logWarning('DatabaseUtil already initialized', this.moduleName);
         }
@@ -30,6 +50,16 @@ export default abstract class DatabaseUtil {
             if (err) {
                 Debug.logFatal(err, 'DatabaseUtil');
                 setTimeout(this.handleDisconnect, 2000);
+            } else {
+                if (!this.initialized) {
+                    this.initialized = true;
+                    Debug.logInfo('DatabaseUtil initialized successfully', this.moduleName);
+                    this.reformatTables().then(() => {
+                        Debug.logInfo('Table reformat complete', this.moduleName);
+                    }).catch(err => {
+                        Debug.logError(err, this.moduleName);
+                    });
+                }
             }
         });
 
@@ -85,5 +115,207 @@ export default abstract class DatabaseUtil {
                 });
             }
         });
+    }
+
+    private static reformatTables() {
+        return new Promise((resolve, reject) => {
+            if (DatabaseUtil.databaseFormatMode == DatabaseUtil.MODE.IGNORE) {
+                Debug.logInfo("Ignoring table structure", DatabaseUtil.moduleName);
+                resolve();
+            } else {
+                let promiseQueue: Array<Function> = [];
+                if (DatabaseUtil.databaseFormatMode >= DatabaseUtil.MODE.REBUILD) {
+                    promiseQueue.push(DatabaseUtil.dropTables);
+                } else if (DatabaseUtil.databaseFormatMode >= DatabaseUtil.MODE.EXTEND) {
+                    promiseQueue.push(DatabaseUtil.extendTables);
+                }
+                if (DatabaseUtil.databaseFormatMode >= DatabaseUtil.MODE.CREATE) {
+                    promiseQueue.push(DatabaseUtil.createTables);
+                }
+
+                BaseUtil.queuePromises(promiseQueue).then(resolve).catch(reject);
+            }
+        })
+    }
+
+    private static dropTables(): Promise<Function> {
+        let tableDrops: Array<Promise<Function>> = [];
+        if (DatabaseUtil.entityDefinitions) {
+            for (let entity of DatabaseUtil.entityDefinitions) {
+                tableDrops.push(DatabaseUtil.transactPromise(`drop table if exists ${entity.name}`));
+            }
+        }
+
+        return new Promise((resolve: any, reject: any) => {
+            Promise.all(tableDrops).then(() => {
+                Debug.logInfo(`Tried dropping ${tableDrops.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
+                            x => x.name).join("','")}']`, DatabaseUtil.moduleName);
+                resolve();
+            }).catch(reject);
+        });
+    }
+
+    private static createTables() {
+        return new Promise((resolve: any, reject: any) => {
+            let createdTables: Array<string> = [];
+            let tableCreates: Array<Function> = [];
+            if (DatabaseUtil.entityDefinitions) {
+                for (let entity of DatabaseUtil.entityDefinitions) {
+                    tableCreates.push(() => {
+                        return new Promise((resolve, reject) => {
+                            DatabaseUtil.getCreateStatement(entity).then((statement: any) => {
+                                if (typeof statement === "string") {
+                                    createdTables.push(entity.name);
+                                    DatabaseUtil.transactPromise(statement).then(resolve).catch(reject);
+                                } else {
+                                    resolve();
+                                }
+                            }).catch(reject);
+                        })
+                    })
+                }
+            }
+
+            BaseUtil.queuePromises(tableCreates).then(() => {
+                if (createdTables.length) {
+                    Debug.logInfo(`Tried creating ${createdTables.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
+                        x => x.name).join("','")}']`, DatabaseUtil.moduleName);
+                }
+                resolve();
+            }).catch(reject);
+        });
+    }
+
+    private static getCreateStatement(entity: EntityDefinition) {
+        return new Promise((resolve, reject) => {
+            Promise.all([
+                DatabaseUtil.transactPromise(`SELECT table_name FROM information_schema.TABLES WHERE TABLE_NAME = ?`, [entity.name]),
+            ]).then(entityInfo => {
+                let existingEntity: any = entityInfo[0];
+
+                if (existingEntity && existingEntity.lenght !== 0) {
+                    Debug.logDebug(`Entity '${entity.name}' already exists. Not creating.`, DatabaseUtil.moduleName);
+                    return resolve();
+                }
+
+                let primaryKeys: Array<string> = [];
+                let uniqueKeys: Array<string> = [];
+                let fields: Array<string> = [];
+                for (let field of entity.fields) {
+                    DatabaseUtil.getFieldDefinition(field, primaryKeys, uniqueKeys, fields);
+                }
+                for (let timestampField of DatabaseUtil.timestampFields) {
+                    DatabaseUtil.getFieldDefinition(timestampField, primaryKeys, uniqueKeys, fields);
+                }
+                let primaryKeysDef = primaryKeys.length ? `primary key (${primaryKeys.join(", ")})` : "";
+                let constraints = [fields.length ? `${fields.join(", ")}` : "", primaryKeysDef].concat(uniqueKeys);
+                if (entity.foreignKeys) {
+                    for (let fk of entity.foreignKeys) {
+                        constraints.push(`constraint ${fk.name} 
+                            foreign key (${fk.field})
+                            references ${fk.reference.table}(${fk.reference.field})
+                            on delete ${fk.onDelete}
+                            on update ${fk.onUpdate}`);
+                    }
+                }
+                resolve(`create table if not exists ${entity.name} (${constraints.filter(x => x.trim() !== "").join(", ")})`);
+            }).catch(reject);
+        })
+    }
+
+    private static getFieldDefinition(field: FieldDefinition, primaryKeys: Array<string>, uniqueKeys: Array<string>, fields: Array<string>) {
+        let nullType = field.notNull ? "not null" : "null";
+        let autoIncrement = field.autoIncrement ? "auto_increment" : "";
+        let defaultExpression = field.default ? "DEFAULT " + field.default : "";
+        if (field.primaryKey === true) {
+            primaryKeys.push(field.name);
+        }
+        if (field.unique === true) {
+            uniqueKeys.push(`unique index ${field.name}_unique (${field.name} asc)`);
+        }
+        fields.push(`${field.name} ${field.type} ${nullType} ${defaultExpression || autoIncrement}`);
+    }
+
+    private static extendTables() {
+        return new Promise((resolve: any, reject: any) => {
+            let extendedTables: Array<string> = [];
+            let tableExtensions: Array<Function> = [];
+            if (DatabaseUtil.entityDefinitions) {
+                for (let entity of DatabaseUtil.entityDefinitions) {
+                    tableExtensions.push(() => {
+                        return new Promise((resolve, reject) => {
+                            DatabaseUtil.getExtendStatement(entity).then((statement: any) => {
+                                if (typeof statement === "string") {
+                                    extendedTables.push(entity.name);
+                                    DatabaseUtil.transactPromise(statement).then(resolve).catch(reject);
+                                } else {
+                                    resolve();
+                                }
+                            }).catch(reject);
+                        })
+                    })
+                }
+            }
+
+            BaseUtil.queuePromises(tableExtensions).then(() => {
+                if (extendedTables.length) {
+                    Debug.logInfo(`Extended ${extendedTables.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
+                    x => x.name).join("','")}']`, DatabaseUtil.moduleName);
+                }
+                resolve();
+            }).catch(reject);
+        });
+    }
+
+    private static getExtendStatement(entity: EntityDefinition) {
+        return new Promise((resolve, reject) => {
+            Promise.all([
+                DatabaseUtil.transactPromise(`SELECT table_name FROM information_schema.TABLES WHERE TABLE_NAME = ?`, [entity.name]),
+                DatabaseUtil.transactPromise(`SELECT column_name FROM information_schema.COLUMNS WHERE TABLE_NAME = ?`, [entity.name]),
+                DatabaseUtil.transactPromise(`SELECT constraint_name FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = ?`, [entity.name])
+            ])
+            .then(entityInfo => {
+                let existingEntity: any = entityInfo[0];
+                let existingFields: any = entityInfo[1];
+                let existingConstraints: any = entityInfo[2];
+
+                if (!existingEntity || existingEntity.lenght === 0) {
+                    Debug.logDebug(`Entity '${entity.name}' does not exist. Not extending.`, DatabaseUtil.moduleName);
+                    return resolve();
+                }
+
+                existingFields = existingFields.map((x: any) => x.column_name);
+                existingConstraints = existingConstraints.map((x: any) => x.constraint_name);
+
+                let fields: Array<string> = [];
+                for (let field of entity.fields) {
+                    if (existingFields.indexOf(field.name) > -1) continue;
+                    fields.push(DatabaseUtil.getFieldExtension(field));
+                }
+                let constraints = [];
+                if (entity.foreignKeys) {
+                    for (let fk of entity.foreignKeys) {
+                        if (existingConstraints.indexOf(fk.name) > -1) continue;
+                        constraints.push(`add constraint ${fk.name} 
+                            foreign key (${fk.field})
+                            references ${fk.reference.table}(${fk.reference.field})
+                            on delete ${fk.onDelete}
+                            on update ${fk.onUpdate}`);
+                    }
+                }
+                if (constraints.length) {
+                    resolve(`alter table ${entity.name} ${constraints.filter(x => x.trim() !== "").join(", ")}`);
+                } else {
+                    resolve();
+                }
+            }).catch(reject);
+        })
+    }
+    
+    private static getFieldExtension(field: FieldDefinition) {
+        let nullType = field.notNull ? "not null" : "null";
+        let autoIncrement = field.autoIncrement ? "auto_increment" : "";
+        let defaultExpression = field.default ? "DEFAULT " + field.default : "";
+        return `add column ${field.name} ${field.type} ${nullType} ${defaultExpression || autoIncrement}`;
     }
 }

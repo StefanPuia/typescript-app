@@ -56,4 +56,38 @@ export default abstract class BaseUtil {
 
         return result;
     }
+
+    public static queuePromises(functions: Array<Function>, args: Array<any> = []) {
+        return new Promise((resolve, reject) => {
+            let promiseFactories: Array<Function> = [];
+            let results: Array<any> = [];
+
+            for (let i = 0; i < functions.length; i++) {
+                promiseFactories.push(() => {
+                    return new Promise((resolve, reject) => {
+                        functions[i].call(null, args[i] || []).then((r: any) => {
+                            results.push(r);
+                            resolve();
+                        }).catch(reject);
+                    })
+                });
+            }
+
+            let loop = () => {
+                return new Promise((resolve, reject) => {
+                    let current = promiseFactories.shift();
+                    if (current) {
+                        current().then(() => {
+                            loop().then(resolve).catch(reject);
+                        }).catch(reject);
+                    } else {
+                        resolve();
+                    }
+                })
+            }
+            loop().then(() => {
+                resolve(results);
+            }).catch(reject);
+        });
+    }
 }

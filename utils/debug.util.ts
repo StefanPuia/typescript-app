@@ -27,19 +27,22 @@ export default abstract class Debug {
     }
 
     public static logError(message: any, errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.ERROR) Debug.log(message, 'ERROR', errModule, path);
+        if (Config.logLevel <= this.ERROR) Debug.log(message, 'ERROR', errModule, path, true);
     }
 
     public static logFatal(message: any, errModule?: string, path?: string): void {
-        if (Config.logLevel <= this.FATAL) Debug.log(message, 'FATAL', errModule, path);
+        if (Config.logLevel <= this.FATAL) Debug.log(message, 'FATAL', errModule, path, true);
     }
 
-    private static log(message: any = '', type: string = 'DEBUG', errModule: string = 'NoModule', path: string = ''): void {
+    private static log(message: any = '', type: string = 'DEBUG', errModule: string = 'NoModule', path: string = '', trace: boolean = false): void {
         errModule = errModule.length > 25 ? errModule.split('.').pop() || errModule : errModule;
         errModule = errModule.length > 25 ? errModule.substr(-25) : errModule;
         errModule = errModule + ' '.repeat(25).substr(0, 25 - errModule.length);
         type = type + ' '.repeat(10).substr(0, 10 - type.length);
         let logText = `${dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss')} | ${type} | ${errModule} | ${path ? path + ' ' : ''}${BaseUtil.stringify(message)}`;
         console.log(logText);
+        if (trace) {
+            console.trace(message);
+        }
     }
 }

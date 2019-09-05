@@ -63,7 +63,7 @@ export default abstract class RenderUtil {
         return new Promise((resolve, reject) => {
             let modifierResult = func(req, res, context, (err: any) => {
                 if (err) reject(err);
-                else resolve();
+                resolve();
             });
 
             if (modifierResult instanceof Promise) {

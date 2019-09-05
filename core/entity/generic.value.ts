@@ -10,10 +10,14 @@ export abstract class GenericValue {
 
     public abstract find(id: any): any;
 
-    protected doSelect(id: any): Promise<any> {
+    protected doSelect(id: any, caseSensitive: boolean = true): Promise<any> {
         this.primaryFieldValue = id;
         return new Promise((resolve, reject) => {
-            DatabaseUtil.transactPromise(`select * from ${this.entity} where ${this.primaryKeyField} = ?`, [this.primaryFieldValue])
+            let whereClause = `${this.primaryKeyField} = ?`;
+            if (!caseSensitive) {
+                whereClause = `upper(${this.primaryKeyField}) = upper(?)`;
+            }
+            DatabaseUtil.transactPromise(`select * from ${this.entity} where ${whereClause} limit 1`, [this.primaryFieldValue])
             .then((data: any) => {
                 if (data && data[0]) {
                     this.setData(data[0]);

@@ -15,3 +15,30 @@ type CookieSettings = {
         maxAge: number
     }
 }
+
+type EntityDefinition = {
+    name: string,
+    foreignKeys?: Array<ForeignKeyDefinition>,
+    fields: Array<FieldDefinition>
+}
+
+type FieldDefinition = {
+    name: string,
+    type: string,
+    primaryKey?: boolean,
+    notNull?: boolean,
+    unique?: boolean,
+    autoIncrement?: boolean,
+    default?: string
+}
+
+type ForeignKeyDefinition = {
+    name: string,
+    field: string,
+    reference: {
+        table: string,
+        field: string
+    },
+    onUpdate: "no action" | "restrict" | "cascade" | "set null",
+    onDelete: "no action" | "restrict" | "cascade" | "set null"
+}

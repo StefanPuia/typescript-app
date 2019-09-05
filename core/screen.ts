@@ -31,7 +31,9 @@ export default class Screen {
 
         if(req.params) {
             this.contextObject.parameters = {};
-            Object.assign(this.contextObject.parameters, req.params);
+            Object.assign(this.contextObject.parameters, req.body);
+            this.contextObject.session = {};
+            Object.assign(this.contextObject.session, req.session);
         }
         return this;
     }

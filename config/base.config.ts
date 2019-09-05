@@ -9,4 +9,6 @@ export default abstract class Config {
     public static screenErrorHandler?: Function;
     public static databaseConfig: DatabaseConnection;
     public static cookieSettings: CookieSettings;
+    public static entities: Array<EntityDefinition>;
+    public static databaseMode: number = 0; // 0 - ignore, 1 - create, 2 - extend, 3 - rebuild
 }
