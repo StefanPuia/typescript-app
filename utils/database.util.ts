@@ -198,8 +198,7 @@ export default abstract class DatabaseUtil {
 
             BaseUtil.queuePromises(tableCreates).then(() => {
                 if (createdTables.length) {
-                    Debug.logInfo(`Created ${createdTables.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
-                        x => x.name).join("','")}']`, DatabaseUtil.moduleName);
+                    Debug.logInfo(`Created ${createdTables.length} table(s): ['${createdTables.join("','")}']`, DatabaseUtil.moduleName);
                 }
                 resolve();
             }).catch(reject);
@@ -279,8 +278,7 @@ export default abstract class DatabaseUtil {
 
             BaseUtil.queuePromises(tableExtensions).then(() => {
                 if (extendedTables.length) {
-                    Debug.logInfo(`Extended ${extendedTables.length} table(s): ['${DatabaseUtil.entityDefinitions.map(
-                    x => x.name).join("','")}']`, DatabaseUtil.moduleName);
+                    Debug.logInfo(`Extended ${extendedTables.length} table(s): ['${extendedTables.join("','")}']`, DatabaseUtil.moduleName);
                 }
                 resolve();
             }).catch(reject);
@@ -312,7 +310,7 @@ export default abstract class DatabaseUtil {
                     if (existingFields.indexOf(field.name) > -1) continue;
                     fields.push(DatabaseUtil.getFieldExtension(field));
                 }
-                let constraints = [];
+                let constraints = fields;
                 if (entity.foreignKeys) {
                     for (let fk of entity.foreignKeys) {
                         if (existingConstraints.indexOf(fk.name) > -1) continue;
@@ -323,9 +321,11 @@ export default abstract class DatabaseUtil {
                             on update ${fk.onUpdate}`);
                     }
                 }
+                constraints = constraints.filter(x => x.trim() !== "");
                 if (constraints.length) {
-                    resolve(`alter table ${entity.name} ${constraints.filter(x => x.trim() !== "").join(", ")}`);
+                    resolve(`alter table ${entity.name} ${constraints.join(", ")}`);
                 } else {
+                    Debug.logInfo(`Nothing to extend on '${entity.name}'.`, DatabaseUtil.moduleName);
                     resolve();
                 }
             }).catch(reject);
