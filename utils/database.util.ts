@@ -16,19 +16,28 @@ export default abstract class DatabaseUtil {
         CREATE: 1,
         IGNORE: 0
     }
+    public static readonly DATA_TYPE = {
+        NUMBER: "INT",
+        ID_SHORT: "VARCHAR(25)",
+        ID_LONG: "VARCHAR(45)",
+        DESCRIPTION: "VARCHAR(500)",
+        BOOLEAN: "BOOLEAN",
+        TIMESTAMP: "TIMESTAMP",
+        DATETIME: "DATETIME"
+    }
     private static readonly timestampFields: Array<FieldDefinition> = [{
         "name": "created_stamp",
-        "type": "TIMESTAMP",
+        "type": DatabaseUtil.DATA_TYPE.TIMESTAMP,
         "default": "CURRENT_TIMESTAMP",
         "notNull": true
     }, {
         "name": "last_updated_stamp",
-        "type": "TIMESTAMP",
+            "type": DatabaseUtil.DATA_TYPE.TIMESTAMP,
         "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
         "notNull": true,
     }]
 
-    public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, entityDefinitions: Array<EntityDefinition>): void {
+    public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, entityDefinitions: Array<EntityDefinition>, afterInit?: Function): void {
         if (!this.initialized) {
             DatabaseUtil.databaseConfig = databaseConfig;
             DatabaseUtil.databaseFormatMode = databaseFormatMode;
@@ -37,13 +46,13 @@ export default abstract class DatabaseUtil {
                 Debug.logFatal("Database config not set");
                 return;
             }
-            this.handleDisconnect();
+            this.handleDisconnect(afterInit);
         } else {
             Debug.logWarning('DatabaseUtil already initialized', this.moduleName);
         }
     }
 
-    private static handleDisconnect(): void {
+    private static handleDisconnect(afterInit?: Function): void {
         this.mysqlConnection = mysql.createConnection(DatabaseUtil.databaseConfig);
 
         this.mysqlConnection.connect((err: any) => {
@@ -56,6 +65,9 @@ export default abstract class DatabaseUtil {
                     Debug.logInfo('DatabaseUtil initialized successfully', this.moduleName);
                     this.reformatTables().then(() => {
                         Debug.logInfo('Table reformat complete', this.moduleName);
+                        if (afterInit) {
+                            afterInit();
+                        }
                     }).catch(err => {
                         Debug.logError(err, this.moduleName);
                     });

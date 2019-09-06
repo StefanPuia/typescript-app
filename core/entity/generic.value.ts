@@ -1,6 +1,8 @@
 import DatabaseUtil from '../../utils/database.util';
+import Debug from '../../utils/debug.util';
 
 export abstract class GenericValue {
+    private static readonly moduleName = "GenericValue";
     protected abstract readonly entity: string;
     protected abstract readonly primaryKeyField: string;
     protected abstract data?: any;
@@ -61,15 +63,20 @@ export abstract class GenericValue {
         }
     }
 
+    public insert(): Promise<Function> {
+        return DatabaseUtil.transactPromise(`insert into ${this.entity} set ?`, [this.data]);
+    }
+
     public update(): Promise<Function> {
         return DatabaseUtil.transactPromise(`update ${this.entity} set ? where ${this.primaryKeyField} = ?`, [this.data, this.primaryFieldValue]);
     }
 
     public store(): Promise<Function> {
         return new Promise((resolve, reject) => {
-            DatabaseUtil.transactPromise(`insert into ${this.entity} set ?`, [this.data])
+            this.insert()
             .then(resolve)
             .catch(err => {
+                Debug.logWarning(err, GenericValue.moduleName);
                 this.update().then(resolve).catch(reject);
             })
         })

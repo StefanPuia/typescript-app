@@ -4,19 +4,19 @@ import RenderUtil from '../utils/render.util';
 import BaseConfig from '../config/base.config';
 
 export default class Screen {
-    private viewName: string;
-    private request: Request;
-    private response: Response;
-    private errorHandlerFunction: Function;
-    private contextObject: GenericObject;
-    private statusId: number;
-    private beforeRenderFunction: RenderModifier;
-    private afterRenderFunction: RenderModifier;
-    private quiet: boolean = false;
-    private hasHandler: boolean = false;
-    private cacheView: boolean = BaseConfig.cacheViews;
+    protected viewName: string;
+    protected request: Request;
+    protected response: Response;
+    protected errorHandlerFunction: Function;
+    protected contextObject: GenericObject;
+    protected statusId: number;
+    protected beforeRenderFunction: RenderModifier;
+    protected afterRenderFunction: RenderModifier;
+    protected quiet: boolean = false;
+    protected hasHandler: boolean = false;
+    protected cacheView: boolean = BaseConfig.cacheViews;
 
-    private constructor(viewName: string, req: Request, res: Response, errorHandler?: Function,
+    protected constructor(viewName: string, req: Request, res: Response, errorHandler?: Function,
             context?: GenericObject, status?: number, beforeRender?: RenderModifier,
             afterRender?: RenderModifier) {
         this.viewName = viewName;
@@ -29,9 +29,17 @@ export default class Screen {
         this.afterRenderFunction = afterRender || RenderUtil.blankRenderFunction;
         this.hasHandler = !!errorHandler;
 
-        if(req.params) {
+        if (req.params) {
             this.contextObject.parameters = {};
-            Object.assign(this.contextObject.parameters, req.body);
+            Object.assign(this.contextObject.parameters, req.params);
+        }
+
+        if (req.body) {
+            this.contextObject.body = {};
+            Object.assign(this.contextObject.body, req.params);
+        }
+
+        if (req.session) {
             this.contextObject.session = {};
             Object.assign(this.contextObject.session, req.session);
         }
