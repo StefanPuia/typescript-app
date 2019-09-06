@@ -4,7 +4,11 @@ import path from 'path';
 
 export default abstract class RenderUtil {
     private static readonly moduleName: string = 'RenderUtil';
-    private static readonly staticError: string = path.join(__dirname, '../views/static_error.ejs');
+    private static readonly staticError: string = RenderUtil.getDefaultView('static_error');
+
+    public static getDefaultView(viewName: string) {
+        return path.join(__dirname, '../views/' + viewName + '.ejs');
+    }
 
     public static render(viewName: string, req: Request, res: Response,
         context: GenericObject = {}, status: number = 200, beforeRender: RenderModifier = this.blankRenderFunction,
@@ -73,6 +77,8 @@ export default abstract class RenderUtil {
 
     private static renderPromise(viewName: string, req: Request, res: Response, context: GenericObject, 
             status: number, beforeRender: RenderModifier, afterRender: RenderModifier): Promise<Function> {
+        context.defaultView = RenderUtil.getDefaultView;
+
         return new Promise((resolve: any, reject: any) => {
             this.handleRenderModifier(beforeRender, req, res, context)
             .then(() => {

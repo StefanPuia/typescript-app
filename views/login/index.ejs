@@ -1,0 +1,34 @@
+<%-include(defaultView('partial/head'))%>
+
+<div class="container">
+    <form method="POST">
+        <div class="grid">
+            <div class="row">
+                <% if(typeof error !== "undefined") { %>
+                    <div class="cell-md-4 offset-md-4 offset-sm-1">
+                        <div class="remark alert">
+                            <%=error%>
+                        </div>
+                    </div>
+                <%}%>
+                <div class="cell-md-4 offset-md-4 offset-sm-1">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" required name="username" placeholder="User name" />
+                    </div>
+                </div>
+                <div class="cell-md-4 offset-md-4 offset-sm-1">
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" required name="password" placeholder="Password" />
+                    </div>
+                </div>
+                <div class="cell-md-4 offset-md-4 offset-sm-1 mt-3">
+                    <div class="form-group">
+                        <button class="button success">Log in</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

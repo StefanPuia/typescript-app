@@ -1,3 +1,8 @@
+import Debug from './debug.util';
+import { Request, Response } from 'express';
+import BaseConfig from '../config/base.config';
+import morgan = require('morgan');
+
 export default abstract class BaseUtil {
     public static stringify(value: any): string {
         if (typeof value === 'string') {
@@ -89,5 +94,24 @@ export default abstract class BaseUtil {
                 resolve(results);
             }).catch(reject);
         });
+    }
+
+    public static morgan(tokens: morgan.TokenIndexer, req: Request, res: Response) {
+        return Debug.formatLogText([
+            tokens.url(req, res),
+            tokens.method(req, res),
+            tokens.status(req, res),
+            `[${req.ip || req.ip || (req.connection && req.connection.remoteAddress) || "0.0.0.0"}]`
+        ].join(' '), "INFO", "Request");
+    }
+
+    public static morganSkip(req: Request, res: Response) {
+        let ignore = ['/framework/static'].concat(BaseConfig.morganExtraIgnore);
+        for (let url of ignore) {
+            if (req.baseUrl && req.baseUrl.toLowerCase().indexOf(url.toLowerCase()) == 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

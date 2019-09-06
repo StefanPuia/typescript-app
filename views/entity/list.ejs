@@ -1,0 +1,29 @@
+<%-include(defaultView('partial/head'))%>
+<%-include(defaultView('partial/navbar'))%>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            Entity List
+        </div>
+        <div class="card-content p-5">
+            <table class="table striped table-border mt-4" data-role="table" data-cls-table-top="row flex-nowrap" 
+                data-cls-search="cell-md-8" data-cls-rows-count="cell-md-4">
+                <thead>
+                    <tr>
+                        <th data-sortable="true">Entity Name</th>
+                        <th data-sortable="true">Fields</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for(let entity of entities) { %>
+                        <tr>
+                            <td><a href="/framework/entity/find/<%=entity.name%>"><%=entity.name%></a></td>
+                            <td><%=entity.fields.length%></td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

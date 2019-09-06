@@ -1,0 +1,88 @@
+<%-include(defaultView('partial/head'))%>
+<%-include(defaultView('partial/navbar'))%>
+
+<script src="https://pagecdn.io/lib/ace/1.4.5/ace.js"></script>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            Entity SQL Processor
+        </div>
+        <div class="card-content p-5">
+            <div id="sqlProcessor" style="height: 300px" class="mb-3"></div>
+            <a href="javascript:runSQL()" class="button success">
+                <span class="mif-play"></span> Run
+            </a>
+        </div>
+        <div class="card-footer">
+            <div id="result" style="width: 100%"></div>
+        </div>
+    </div>
+</div>
+
+<template id="result-table">
+    <table class="table striped row-hover compact">
+        <thead>
+            <tr></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</template>
+
+<script>
+let sqlProcessor;
+
+$(document).ready(() => {
+    sqlProcessor = ace.edit($("#sqlProcessor").get(0), {
+        mode: "ace/mode/sql"
+    });
+
+    if (localStorage.sqlProcessorQuery) {
+        sqlProcessor.getSession().setValue(localStorage.sqlProcessorQuery);
+    }
+})
+
+function runSQL() {
+    let query = sqlProcessor.getSession().getValue();
+    localStorage.sqlProcessorQuery = query;
+    query = query.trim();
+    if (query === "") return;
+    waitSpinner();
+    callServer("/framework/entity/sqlProcessor", {
+        body: JSON.stringify({
+            query: query
+        })
+    }).then(results => {
+        if (!(results[0] instanceof Array)) {
+            results = [results];
+        }
+        displayResults(results);
+    }).catch(err => {
+        alert(err);
+    }).finally(() => {
+        waitSpinner(0);
+    })
+}
+
+function displayResults(results) {
+    let container = $("#result");
+    container.html("");
+
+    for (let resultBlock of results) {
+        let fields = [];
+        for (let field of Object.keys(resultBlock[0])) {
+            fields.push(field);
+        }
+        let table = $($("#result-table").clone(true).html());
+        table.find("thead > tr").append(fields.map(x => $("<th/>").text(x)));
+        for (let row of resultBlock) {
+            let rowEl = $("<tr/>");
+            for (let field of fields) {
+                rowEl.append($("<td/>").text(row[field] || ""));
+            }
+            table.find("tbody").append(rowEl);
+        }
+        container.append(table);
+    }
+}
+</script>

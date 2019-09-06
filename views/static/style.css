@@ -1,0 +1,31 @@
+:root {
+    --appbar-height: 52px;
+}
+
+.container,
+.container-fluid {
+    margin-top: calc(var(--appbar-height) + 10px);
+}
+
+.app-bar .app-bar-menu.app-bar-menu-right.collapsed {
+    position: fixed;
+    right: 0;
+}
+
+#spinner {
+    position: fixed;
+    z-index: 3000;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    display: none;
+    opacity: 0.9;
+    justify-content: center;
+    align-items: center;
+}
+
+#spinner img {
+    width: 60px;
+    height: 60px;
+}

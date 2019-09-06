@@ -1,0 +1,41 @@
+<%-include(defaultView('partial/head'))%>
+<%-include(defaultView('partial/navbar'))%>
+
+<div class="container-fluid">
+    <div class="tiles-grid tiles-group size-2 mt-13" data-group-title="Entity Engine">
+        <a href="/framework/entity/list" data-role="tile" class="fg-white">
+            <span class="mif-table icon"></span>
+            <span class="branding-bar">Entity List</span>
+        </a>
+        <a href="/framework/entity/sqlProcessor" data-role="tile" class="fg-white">
+            <span class="mif-file-code icon"></span>
+            <span class="branding-bar">SQL Processor</span>
+        </a>
+    </div>
+    <div class="tiles-grid tiles-group size-2 mt-13" data-group-title="Service Engine">
+        <a href="/framework/service/list" data-role="tile" class="fg-white">
+            <span class="mif-local-service icon"></span>
+            <span class="branding-bar">Serivce List</span>
+        </a>
+    </div>
+    <div class="tiles-grid tiles-group size-2 mt-13" data-group-title="Cache Engine">
+        <a href="/framework/service/list" data-role="tile" class="fg-white">
+            <span class="mif-server icon"></span>
+            <span class="branding-bar">Cache List</span>
+        </a>
+    </div>
+    <div class="tiles-grid tiles-group size-2 mt-13" data-group-title="Security">
+        <a href="/framework/user/list" data-role="tile" class="fg-white">
+            <span class="mif-user-check icon"></span>
+            <span class="branding-bar">User Manager</span>
+        </a>
+        <a href="/framework/user/security" data-role="tile" class="fg-white">
+            <span class="mif-users icon"></span>
+            <span class="branding-bar">Security Groups</span>
+        </a>
+        <a href="/framework/user/permission" data-role="tile" class="fg-white">
+            <span class="mif-security icon"></span>
+            <span class="branding-bar">Security Permissions</span>
+        </a>
+    </div>
+</div>

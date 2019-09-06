@@ -23,7 +23,8 @@ export default abstract class DatabaseUtil {
         DESCRIPTION: "VARCHAR(500)",
         BOOLEAN: "BOOLEAN",
         TIMESTAMP: "TIMESTAMP",
-        DATETIME: "DATETIME"
+        DATETIME: "DATETIME",
+        TEXT: "TEXT"
     }
     private static readonly timestampFields: Array<FieldDefinition> = [{
         "name": "created_stamp",
@@ -36,6 +37,10 @@ export default abstract class DatabaseUtil {
         "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
         "notNull": true,
     }]
+
+    public static getEntityDefinitions(): Array<EntityDefinition> {
+        return DatabaseUtil.entityDefinitions;
+    }
 
     public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, entityDefinitions: Array<EntityDefinition>, afterInit?: Function): void {
         if (!this.initialized) {
@@ -63,8 +68,10 @@ export default abstract class DatabaseUtil {
                 if (!this.initialized) {
                     this.initialized = true;
                     Debug.logInfo('DatabaseUtil initialized successfully', this.moduleName);
-                    this.reformatTables().then(() => {
-                        Debug.logInfo('Table reformat complete', this.moduleName);
+                    this.reformatTables().then((reformatted: any) => {
+                        if (reformatted) {
+                            Debug.logInfo('Table reformat complete', this.moduleName);
+                        }
                         if (afterInit) {
                             afterInit();
                         }
@@ -133,7 +140,7 @@ export default abstract class DatabaseUtil {
         return new Promise((resolve, reject) => {
             if (DatabaseUtil.databaseFormatMode == DatabaseUtil.MODE.IGNORE) {
                 Debug.logInfo("Ignoring table structure", DatabaseUtil.moduleName);
-                resolve();
+                resolve(false);
             } else {
                 let promiseQueue: Array<Function> = [];
                 if (DatabaseUtil.databaseFormatMode >= DatabaseUtil.MODE.REBUILD) {
@@ -145,7 +152,9 @@ export default abstract class DatabaseUtil {
                     promiseQueue.push(DatabaseUtil.createTables);
                 }
 
-                BaseUtil.queuePromises(promiseQueue).then(resolve).catch(reject);
+                BaseUtil.queuePromises(promiseQueue).then(() => {
+                    resolve(true);
+                }).catch(reject);
             }
         })
     }
@@ -158,6 +167,10 @@ export default abstract class DatabaseUtil {
                 // reversing definitions to resolve dependencies
                 let reversedDefinitions = DatabaseUtil.entityDefinitions.slice().reverse();
                 for (let entity of reversedDefinitions) {
+                    if (entity.ignore) {
+                        Debug.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
+                        continue;
+                    }
                     tableDrops.push(() => {
                         return new Promise((resolve, reject) => {
                             Promise.all([
@@ -193,6 +206,10 @@ export default abstract class DatabaseUtil {
             let tableCreates: Array<Function> = [];
             if (DatabaseUtil.entityDefinitions) {
                 for (let entity of DatabaseUtil.entityDefinitions) {
+                    if (entity.ignore) {
+                        Debug.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
+                        continue;
+                    }
                     tableCreates.push(() => {
                         return new Promise((resolve, reject) => {
                             DatabaseUtil.getCreateStatement(entity).then((statement: any) => {
@@ -273,6 +290,10 @@ export default abstract class DatabaseUtil {
             let tableExtensions: Array<Function> = [];
             if (DatabaseUtil.entityDefinitions) {
                 for (let entity of DatabaseUtil.entityDefinitions) {
+                    if (entity.ignore) {
+                        Debug.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
+                        continue;
+                    }
                     tableExtensions.push(() => {
                         return new Promise((resolve, reject) => {
                             DatabaseUtil.getExtendStatement(entity).then((statement: any) => {

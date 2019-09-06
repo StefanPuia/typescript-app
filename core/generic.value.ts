@@ -1,5 +1,5 @@
-import DatabaseUtil from '../../utils/database.util';
-import Debug from '../../utils/debug.util';
+import DatabaseUtil from '../utils/database.util';
+import Debug from '../utils/debug.util';
 
 export abstract class GenericValue {
     private static readonly moduleName = "GenericValue";
@@ -10,6 +10,7 @@ export abstract class GenericValue {
 
     protected constructor() { }
 
+    public static readonly definition: EntityDefinition;
     public abstract find(id: any): any;
     public static create(): void { }
 

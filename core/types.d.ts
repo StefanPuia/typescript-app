@@ -18,6 +18,7 @@ type CookieSettings = {
 
 type EntityDefinition = {
     name: string,
+    ignore?: boolean,
     foreignKeys?: Array<ForeignKeyDefinition>,
     fields: Array<FieldDefinition>
 }
