@@ -1,26 +1,23 @@
-import DatabaseUtil from '../utils/database.util';
-import Debug from '../utils/debug.util';
+import { DatabaseUtil } from '../utils/database.util';
+import { DebugUtil } from '../utils/debug.util';
 
 export abstract class GenericValue {
     private static readonly moduleName = "GenericValue";
     protected abstract readonly entity: string;
-    protected abstract readonly primaryKeyField: string;
+    protected abstract readonly primaryKeyField: string | Array<string>;
     protected abstract data?: any;
     private primaryFieldValue: any;
 
     protected constructor() { }
 
     public static readonly definition: EntityDefinition;
-    public abstract find(id: any): any;
+    public abstract find(...fields: any): any;
     public static create(): void { }
 
     protected doSelect(id: any, caseSensitive: boolean = true): Promise<any> {
         this.primaryFieldValue = id;
         return new Promise((resolve, reject) => {
-            let whereClause = `${this.primaryKeyField} = ?`;
-            if (!caseSensitive) {
-                whereClause = `upper(${this.primaryKeyField}) = upper(?)`;
-            }
+            let whereClause = GenericValue.getCaseSensitiveClause(this.primaryKeyField, caseSensitive);
             DatabaseUtil.transactPromise(`select * from ${this.entity} where ${whereClause} limit 1`, [this.primaryFieldValue])
             .then((data: any) => {
                 if (data && data[0]) {
@@ -31,6 +28,20 @@ export abstract class GenericValue {
                 }
             }).catch(reject);
         })
+    }
+
+    private static getCaseSensitiveClause(fields: string | Array<string>, caseSensitive: boolean = true): string {
+        if (fields instanceof Array) {
+            return fields.map(field => { return caseSensitiveClause(field, caseSensitive); }).join(" AND ");
+        }
+        return caseSensitiveClause(fields, caseSensitive);
+
+        function caseSensitiveClause(field: string, caseSensitive: boolean): string {
+            if (caseSensitive) {
+                return `${field} = ?`;
+            }
+            return `upper(${field}) = upper(?)`;
+        }
     }
 
     protected doSelectAll(condition: string = "", inserts: any[] = []): Promise<any[]> {
@@ -77,7 +88,7 @@ export abstract class GenericValue {
             this.insert()
             .then(resolve)
             .catch(err => {
-                Debug.logWarning(err, GenericValue.moduleName);
+                DebugUtil.logWarning(err, GenericValue.moduleName);
                 this.update().then(resolve).catch(reject);
             })
         })

@@ -1,9 +1,9 @@
-import Debug from './debug.util';
 import { Request, Response } from 'express';
-import BaseConfig from '../config/base.config';
+import { BaseConfig } from '../config/base.config';
+import { DebugUtil } from './debug.util';
 import morgan = require('morgan');
 
-export default abstract class BaseUtil {
+export abstract class BaseUtil {
     public static stringify(value: any): string {
         if (typeof value === 'string') {
             return value;
@@ -97,7 +97,7 @@ export default abstract class BaseUtil {
     }
 
     public static morgan(tokens: morgan.TokenIndexer, req: Request, res: Response) {
-        return Debug.formatLogText([
+        return DebugUtil.formatLogText([
             tokens.url(req, res),
             tokens.method(req, res),
             tokens.status(req, res),
@@ -113,5 +113,47 @@ export default abstract class BaseUtil {
             }
         }
         return false;
+    }
+
+    public static sizeOf(object: any) {
+        let objectList: Array<any> = [];
+        let stack: Array<any> = [object];
+        let bytes: number = 0;
+
+        while (stack.length) {
+            let value: any = stack.pop();
+            if (typeof value === 'boolean') {
+                bytes += 4;
+            } else if (typeof value === 'string') {
+                bytes += value.length * 2;
+            } else if (typeof value === 'number') {
+                bytes += 8;
+            } else if (typeof value === 'object' && objectList.indexOf(value) === -1 ) {
+                objectList.push(value);
+                for (let i in value) {
+                    stack.push(value[i]);
+                }
+            }
+        }
+        return BaseUtil.compactSize(bytes);
+    }
+
+    public static compactSize(size: number) {
+        let output = "";
+
+        if (size > Math.pow(10, 9)) {
+            output += size / Math.pow(10, 9) + "GB ";
+            size = size % Math.pow(10, 9);
+        }
+        if (size > Math.pow(10, 6)) {
+            output += size / Math.pow(10, 6) + "MB ";
+            size = size % Math.pow(10, 6);
+        }
+        if (size > Math.pow(10, 3)) {
+            output += size / Math.pow(10, 3) + "KB ";
+            size = size % Math.pow(10, 3);
+        }
+        output += size + 'B';
+        return output;
     }
 }

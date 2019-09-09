@@ -2,9 +2,9 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import session from 'express-session';
-import BaseConfig from '../config/base.config';
-import frameworkController from '../controllers/framework.controller';
-import BaseUtil from '../utils/base.util';
+import { BaseConfig } from '../config/base.config';
+import { frameworkController } from '../controllers/framework.controller';
+import { BaseUtil } from '../utils/base.util';
 import morgan = require('morgan');
 const MySQLStore = require('connect-mysql')(session);
 
@@ -32,8 +32,8 @@ app.use(bodyParser.urlencoded({
 app.set('view engine', 'ejs');
 app.set('views', BaseConfig.viewsLocation);
 
-if (BaseConfig.enableFrameworkControllers) {
+if (BaseConfig.enableFrameworkController) {
     app.use("/framework/", frameworkController);
 }
 
-export default app;
+export { app };

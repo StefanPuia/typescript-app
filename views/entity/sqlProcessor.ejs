@@ -48,18 +48,17 @@ function runSQL() {
     query = query.trim();
     if (query === "") return;
     waitSpinner();
-    callServer("/framework/entity/sqlProcessor", {
+    callServer("<%=baseUrl%>/sqlProcessor", {
         body: JSON.stringify({
             query: query
         })
     }).then(results => {
-        if (!(results[0] instanceof Array)) {
-            results = [results];
-        }
         displayResults(results);
-    }).catch(err => {
+    })
+    .catch(err => {
         alert(err);
-    }).finally(() => {
+    })
+    .finally(() => {
         waitSpinner(0);
     })
 }
@@ -78,7 +77,8 @@ function displayResults(results) {
         for (let row of resultBlock) {
             let rowEl = $("<tr/>");
             for (let field of fields) {
-                rowEl.append($("<td/>").text(row[field] || ""));
+                let textValue = typeof row[field] !== "undefined" ? row[field] : "";
+                rowEl.append($("<td/>").text(textValue));
             }
             table.find("tbody").append(rowEl);
         }

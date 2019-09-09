@@ -1,8 +1,9 @@
+import dateFormat from 'dateformat';
 import { Request, Response } from 'express';
-import Debug from './debug.util';
 import path from 'path';
+import { DebugUtil } from './debug.util';
 
-export default abstract class RenderUtil {
+export abstract class RenderUtil {
     private static readonly moduleName: string = 'RenderUtil';
     private static readonly staticError: string = RenderUtil.getDefaultView('static_error');
 
@@ -19,11 +20,11 @@ export default abstract class RenderUtil {
             this.renderPromise(viewName, req, res, context, status, beforeRender, afterRender)
             .then(html => {
                 res.send(html).end(() => {
-                    Debug.logTiming(`Rendered ${viewName}`, timeStart, undefined, this.moduleName);
+                    DebugUtil.logTiming(`Rendered ${viewName}`, timeStart, undefined, this.moduleName);
                     resolve(html);
                 });
             }).catch(error => {
-                Debug.logError(error, this.moduleName);
+                DebugUtil.logError(error, this.moduleName);
                 res.status(500).render(RenderUtil.staticError, {
                     error: error
                 });
@@ -46,7 +47,7 @@ export default abstract class RenderUtil {
             afterRender: RenderModifier = this.blankRenderFunction): void {
         this.render(viewName, req, res, context, status, beforeRender, afterRender)
         .catch(err => {
-            Debug.logError(err, this.moduleName);
+            DebugUtil.logError(err, this.moduleName);
         })
     }
 
@@ -78,6 +79,8 @@ export default abstract class RenderUtil {
     private static renderPromise(viewName: string, req: Request, res: Response, context: GenericObject, 
             status: number, beforeRender: RenderModifier, afterRender: RenderModifier): Promise<Function> {
         context.defaultView = RenderUtil.getDefaultView;
+        context.dateFormat = dateFormat;
+        context.baseUrl = req.baseUrl;
 
         return new Promise((resolve: any, reject: any) => {
             this.handleRenderModifier(beforeRender, req, res, context)

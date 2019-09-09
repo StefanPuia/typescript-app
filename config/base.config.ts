@@ -1,6 +1,6 @@
 import path from 'path';
 
-export default abstract class BaseConfig {
+export abstract class BaseConfig {
     public static logFullQuery: boolean = false;
     public static viewsLocation: string = path.join(__dirname, '../views');
     public static staticLocation: string = path.join(__dirname, '../views/static');
@@ -12,6 +12,6 @@ export default abstract class BaseConfig {
     public static cookieSettings: CookieSettings;
     public static passwordSalt: string;
     public static databaseMode: number = 0; // 0 - ignore, 1 - create, 2 - extend, 3 - rebuild
-    public static enableFrameworkControllers: boolean = true;
+    public static enableFrameworkController: boolean = true;
     public static morganExtraIgnore: Array<string> = [];
 }

@@ -1,0 +1,41 @@
+<%-include(defaultView('partial/head'))%>
+<%-include(defaultView('partial/navbar'))%>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <a class="button" href="<%=baseUrl%>/list">
+                <span class="mif-arrow-left"></span>
+                Back
+            </a>
+            Cache Components - <%=cacheGroup%>
+        </div>
+        <div class="card-content p-5">
+            <table class="table striped table-border mt-4" data-role="table" data-cls-table-top="row flex-nowrap" 
+                data-cls-search="cell-md-8" data-cls-rows-count="cell-md-4">
+                <thead>
+                    <tr>
+                        <th data-sortable="true">Component</th>
+                        <th data-sortable="true">Subcomponents</th>
+                        <th data-sortable="true">Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for(let key of Object.keys(storage)) { %>
+                        <tr>
+                            <td>
+                                <a href="<%=baseUrl%>/list/<%=cacheGroup%>/<%=key%>">
+                                    <%=key%>
+                                </a>
+                            </td>
+                            <td>
+                                <%=Object.keys(storage[key]).length%>
+                            </td>
+                            <td><%=sizeOf(storage[key])%></td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,21 +1,28 @@
 import express, { Request, Response, Router } from 'express';
-import BaseConfig from '../config/base.config';
-import entityController from '../controllers/entity.controller';
-import loginController from '../controllers/login.controller';
-import Screen from '../core/screen';
-import RenderUtil from '../utils/render.util';
-import SecurityUtil from '../utils/security.util';
+import { BaseConfig } from '../config/base.config';
+import { Screen } from '../core/screen';
+import { RenderUtil } from '../utils/render.util';
+import { SecurityUtil } from '../utils/security.util';
+import { cacheController } from './cache.controller';
+import { entityController } from './entity.controller';
+import { loginController } from './login.controller';
+import { securityController } from './security.controller';
+import { serviceController } from './service.controller';
 
-const router: Router = Router();
+const frameworkController: Router = Router();
 
+frameworkController.use('/static', express.static(BaseConfig.staticLocation));
+frameworkController.use("/", loginController);
+frameworkController.use(SecurityUtil.ensureLogin, SecurityUtil.ensurePermission("SUPER_ADMIN"));
+frameworkController.use("/entity", entityController);
+frameworkController.use("/security", securityController);
+frameworkController.use("/cache", cacheController);
+frameworkController.use("/service", serviceController);
 
-router.use('/static', express.static(BaseConfig.staticLocation));
-router.use("/", loginController);
-router.use(SecurityUtil.ensureLogin);
-router.use("/entity", entityController);
-
-router.get('/', (req: Request, res: Response) => {
-    Screen.create(RenderUtil.getDefaultView('index'), req, res).renderQuietly();
+frameworkController.get('/', (req: Request, res: Response) => {
+    Screen.create(RenderUtil.getDefaultView('index'), req, res).appendContext({
+        headerTitle: "Main"
+    }).renderQuietly();
 });
 
-export default router;
+export { frameworkController };

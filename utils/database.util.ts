@@ -1,9 +1,10 @@
 import mysql from 'mysql2';
-import BaseConfig from '../config/base.config';
-import Debug from './debug.util';
-import BaseUtil from './base.util';
+import { BaseConfig } from '../config/base.config';
+import { CacheEngine } from '../core/engine/cache.engine';
+import { BaseUtil } from './base.util';
+import { DebugUtil } from './debug.util';
 
-export default abstract class DatabaseUtil {
+export abstract class DatabaseUtil {
     private static mysqlConnection: mysql.Connection;
     private static initialized: boolean = false;
     private static readonly moduleName: string = 'DatabaseUtil';
@@ -42,18 +43,22 @@ export default abstract class DatabaseUtil {
         return DatabaseUtil.entityDefinitions;
     }
 
+    public static getEntityDefinition(entityName: string): EntityDefinition | undefined {
+        return DatabaseUtil.getEntityDefinitions().find(x => x.name == entityName);
+    }
+
     public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, entityDefinitions: Array<EntityDefinition>, afterInit?: Function): void {
         if (!this.initialized) {
             DatabaseUtil.databaseConfig = databaseConfig;
             DatabaseUtil.databaseFormatMode = databaseFormatMode;
             DatabaseUtil.entityDefinitions = entityDefinitions;
             if (!DatabaseUtil.databaseConfig) {
-                Debug.logFatal("Database config not set");
+                DebugUtil.logFatal("Database config not set");
                 return;
             }
             this.handleDisconnect(afterInit);
         } else {
-            Debug.logWarning('DatabaseUtil already initialized', this.moduleName);
+            DebugUtil.logWarning('DatabaseUtil already initialized', this.moduleName);
         }
     }
 
@@ -62,45 +67,50 @@ export default abstract class DatabaseUtil {
 
         this.mysqlConnection.connect((err: any) => {
             if (err) {
-                Debug.logFatal(err, 'DatabaseUtil');
+                DebugUtil.logFatal(err, 'DatabaseUtil');
                 setTimeout(this.handleDisconnect, 2000);
             } else {
                 if (!this.initialized) {
                     this.initialized = true;
-                    Debug.logInfo('DatabaseUtil initialized successfully', this.moduleName);
+                    DebugUtil.logInfo('DatabaseUtil initialized successfully', this.moduleName);
                     this.reformatTables().then((reformatted: any) => {
                         if (reformatted) {
-                            Debug.logInfo('Table reformat complete', this.moduleName);
+                            DebugUtil.logInfo('Table reformat complete', this.moduleName);
                         }
                         if (afterInit) {
                             afterInit();
                         }
                     }).catch(err => {
-                        Debug.logError(err, this.moduleName);
+                        DebugUtil.logError(err, this.moduleName);
                     });
                 }
             }
         });
 
         this.mysqlConnection.on('error', (err: any) => {
-            Debug.logFatal(err, 'DatabaseUtil');
-            if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-                this.handleDisconnect();
-            } else {
-                Debug.logError(err, 'DatabaseUtil');
-            }
+            DebugUtil.logFatal(err, 'DatabaseUtil');
+            setTimeout(this.handleDisconnect, 10000);
         });
     }
 
-    public static transactPromise(query: string = '', inserts?: Array<any>): Promise<Function> {
+    public static transactPromise(query: string): Promise<Function>;
+    public static transactPromise(query: string, inserts: Array<any>): Promise<Function>;
+    public static transactPromise(query: string, inserts: Array<any>, cache: boolean): Promise<Function>;
+    public static transactPromise(query: string = '', inserts: Array<any> = [], cache: boolean = false): Promise<Function> {
         return new Promise((resolve, reject) => {
-            this.transact(query, inserts, reject, resolve);
+            this.transact(query, inserts, reject, resolve, cache);
         })
     }
 
-    public static transact(query: string = '', inserts: Array<any> = [], reject: Function = Debug.logInfo, resolve: Function = Debug.logError): void {
+    public static transact(query: string): void;
+    public static transact(query: string, inserts: Array<any>): void;
+    public static transact(query: string, inserts: Array<any>, reject: Function, resolve: Function): void;
+    public static transact(query: string, inserts: Array<any>, reject: Function, resolve: Function, cache: boolean): void;
+    public static transact(query: string = '', inserts: Array<any> = [], reject: Function = DebugUtil.logInfo,
+            resolve: Function = DebugUtil.logError, cache: boolean = false): void {
+
         if (!this.initialized) {
-            reject('DatabaseUtil not initialized');
+            return reject('DatabaseUtil not initialized');
         }
         let queryStart = new Date().getTime();
         query = query.replace(/\s+/gm, ' ');
@@ -108,38 +118,76 @@ export default abstract class DatabaseUtil {
         let logSql = BaseConfig.logFullQuery ? sql : query;
         this.mysqlConnection.beginTransaction((err: any) => {
             if (err) {
-                Debug.logError(err, 'DatabaseUtil.TransactBegin');
+                DebugUtil.logError(err, 'DatabaseUtil.TransactBegin');
                 reject(err);
             } else {
-                this.mysqlConnection.query(sql, (err: any, data: any) => {
-                    if (err) {
-                        return this.mysqlConnection.rollback(() => {
-                            Debug.logError('Rolling back transaction. ' + logSql, 'DatabaseUtil.Transact');
-                            reject(err);
-                        });
-                    } else {
-                        this.mysqlConnection.commit((err: any) => {
-                            if (err) {
-                                Debug.logError(err, 'DatabaseUtil.TransactCommit');
-                                return this.mysqlConnection.rollback(() => {
-                                    Debug.logError('Rolling back transaction. ' + logSql, 'DatabaseUtil.Transact');
-                                    reject(err);
-                                });
-                            } else {
-                                Debug.logTiming(`Ran query ${logSql}`, queryStart, undefined, 'DatabaseUtil.Transact');
-                                resolve(data);
+                let func: Function = DatabaseUtil.query;
+                if (cache) func = DatabaseUtil.cacheQuery;
+                func.apply(this, [sql, inserts]).then((data: any) => {
+                    this.mysqlConnection.commit((err: any) => {
+                        if (err) {
+                            DebugUtil.logError(err, 'DatabaseUtil.TransactCommit');
+                            return this.mysqlConnection.rollback(() => {
+                                DebugUtil.logError('Rolling back transaction. ' + logSql, 'DatabaseUtil.Transact');
+                                reject(err);
+                            });
+                        } else {
+                            if (!data.cached) {
+                                DebugUtil.logTiming(`Ran query ${logSql}`, queryStart, undefined, 'DatabaseUtil.Transact');
                             }
-                        });
-                    }
+                            resolve(data.data);
+                        }
+                    });
+                }).catch((err: any) => {
+                    return this.mysqlConnection.rollback(() => {
+                        DebugUtil.logError('Rolling back transaction. ' + logSql, 'DatabaseUtil.Transact');
+                        reject(err);
+                    });
                 });
             }
+        });
+    }
+
+    private static cacheQuery(sql: string, inserts: Array<any> = []): Promise<any> {
+        return new Promise((resolve, reject) => {
+            let cacheName = CacheEngine.buildParameterSubKey([sql]);
+            let parameterSubKey = CacheEngine.buildParameterSubKey(inserts) || "default";
+            let cacheObject = CacheEngine.get("entity", cacheName, parameterSubKey);
+            if (typeof cacheObject !== "undefined") {
+                return resolve({
+                    data: cacheObject.value,
+                    cached: true
+                });
+            }
+            DatabaseUtil.query(sql).then(value => {
+                CacheEngine.store("entity", cacheName, value, parameterSubKey);
+                resolve({
+                    data: value,
+                    cached: false
+                });
+            }).catch(reject);
+        });
+    }
+
+    private static query(sql: string, inserts?: Array<any>): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.mysqlConnection.query(sql, (err: any, data: any) => {
+                if(err) {
+                    reject(err);
+                } else {
+                    resolve({
+                        data: data,
+                        cached: false
+                    });
+                }
+            });
         });
     }
 
     private static reformatTables() {
         return new Promise((resolve, reject) => {
             if (DatabaseUtil.databaseFormatMode == DatabaseUtil.MODE.IGNORE) {
-                Debug.logInfo("Ignoring table structure", DatabaseUtil.moduleName);
+                DebugUtil.logInfo("Ignoring table structure", DatabaseUtil.moduleName);
                 resolve(false);
             } else {
                 let promiseQueue: Array<Function> = [];
@@ -168,7 +216,7 @@ export default abstract class DatabaseUtil {
                 let reversedDefinitions = DatabaseUtil.entityDefinitions.slice().reverse();
                 for (let entity of reversedDefinitions) {
                     if (entity.ignore) {
-                        Debug.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
+                        DebugUtil.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
                         continue;
                     }
                     tableDrops.push(() => {
@@ -179,7 +227,7 @@ export default abstract class DatabaseUtil {
                                 let existingEntity: any = entityInfo[0];
 
                                 if (!existingEntity || existingEntity.length === 0) {
-                                    Debug.logInfo(`Entity '${entity.name}' does not exist. Not dropping.`, DatabaseUtil.moduleName);
+                                    DebugUtil.logInfo(`Entity '${entity.name}' does not exist. Not dropping.`, DatabaseUtil.moduleName);
                                     return resolve();
                                 }
 
@@ -193,7 +241,7 @@ export default abstract class DatabaseUtil {
 
             BaseUtil.queuePromises(tableDrops).then(() => {
                 if (droppedTables.length) {
-                    Debug.logInfo(`Dropped ${droppedTables.length} table(s): ['${droppedTables.join("','")}']`, DatabaseUtil.moduleName);
+                    DebugUtil.logInfo(`Dropped ${droppedTables.length} table(s): ['${droppedTables.join("','")}']`, DatabaseUtil.moduleName);
                 }
                 resolve();
             }).catch(reject);
@@ -207,7 +255,7 @@ export default abstract class DatabaseUtil {
             if (DatabaseUtil.entityDefinitions) {
                 for (let entity of DatabaseUtil.entityDefinitions) {
                     if (entity.ignore) {
-                        Debug.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
+                        DebugUtil.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
                         continue;
                     }
                     tableCreates.push(() => {
@@ -227,7 +275,7 @@ export default abstract class DatabaseUtil {
 
             BaseUtil.queuePromises(tableCreates).then(() => {
                 if (createdTables.length) {
-                    Debug.logInfo(`Created ${createdTables.length} table(s): ['${createdTables.join("','")}']`, DatabaseUtil.moduleName);
+                    DebugUtil.logInfo(`Created ${createdTables.length} table(s): ['${createdTables.join("','")}']`, DatabaseUtil.moduleName);
                 }
                 resolve();
             }).catch(reject);
@@ -242,7 +290,7 @@ export default abstract class DatabaseUtil {
                 let existingEntity: any = entityInfo[0];
 
                 if (existingEntity && existingEntity.length !== 0) {
-                    Debug.logInfo(`Entity '${entity.name}' already exists. Not creating.`, DatabaseUtil.moduleName);
+                    DebugUtil.logInfo(`Entity '${entity.name}' already exists. Not creating.`, DatabaseUtil.moduleName);
                     return resolve();
                 }
 
@@ -291,7 +339,7 @@ export default abstract class DatabaseUtil {
             if (DatabaseUtil.entityDefinitions) {
                 for (let entity of DatabaseUtil.entityDefinitions) {
                     if (entity.ignore) {
-                        Debug.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
+                        DebugUtil.logInfo(`Ignoring entity '${entity.name}'`, DatabaseUtil.moduleName);
                         continue;
                     }
                     tableExtensions.push(() => {
@@ -311,7 +359,7 @@ export default abstract class DatabaseUtil {
 
             BaseUtil.queuePromises(tableExtensions).then(() => {
                 if (extendedTables.length) {
-                    Debug.logInfo(`Extended ${extendedTables.length} table(s): ['${extendedTables.join("','")}']`, DatabaseUtil.moduleName);
+                    DebugUtil.logInfo(`Extended ${extendedTables.length} table(s): ['${extendedTables.join("','")}']`, DatabaseUtil.moduleName);
                 }
                 resolve();
             }).catch(reject);
@@ -331,7 +379,7 @@ export default abstract class DatabaseUtil {
                 let existingConstraints: any = entityInfo[2];
 
                 if (!existingEntity || existingEntity.length === 0) {
-                    Debug.logInfo(`Entity '${entity.name}' does not exist. Not extending.`, DatabaseUtil.moduleName);
+                    DebugUtil.logInfo(`Entity '${entity.name}' does not exist. Not extending.`, DatabaseUtil.moduleName);
                     return resolve();
                 }
 
@@ -358,7 +406,7 @@ export default abstract class DatabaseUtil {
                 if (constraints.length) {
                     resolve(`alter table ${entity.name} ${constraints.join(", ")}`);
                 } else {
-                    Debug.logInfo(`Nothing to extend on '${entity.name}'.`, DatabaseUtil.moduleName);
+                    DebugUtil.logInfo(`Nothing to extend on '${entity.name}'.`, DatabaseUtil.moduleName);
                     resolve();
                 }
             }).catch(reject);

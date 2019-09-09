@@ -24,7 +24,7 @@
     "ejs": "^2.7.1",
     "express": "^4.17.1",
     "express-session": "^1.16.2",
-    "freemarker": "^2.1.0",
+    "json-stringify-safe": "^5.0.1",
     "mysql2": "^1.7.0",
     "ts-node": "^8.3.0",
     "typescript": "^3.6.2"
@@ -34,6 +34,6 @@
     "@types/errorhandler": "0.0.32",
     "@types/express": "^4.17.0",
     "@types/express-session": "^1.15.14",
-    "errorhandler": "^1.5.1"
+    "@types/json-stringify-safe": "^5.0.0",
   }
 }

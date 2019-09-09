@@ -1,9 +1,9 @@
 import { RenderModifier } from '../utils/render.util';
 import { Request, Response } from 'express';
-import RenderUtil from '../utils/render.util';
-import BaseConfig from '../config/base.config';
+import { RenderUtil } from '../utils/render.util';
+import { BaseConfig } from '../config/base.config';
 
-export default class Screen {
+export class Screen {
     protected viewName: string;
     protected request: Request;
     protected response: Response;
@@ -29,18 +29,23 @@ export default class Screen {
         this.afterRenderFunction = afterRender || RenderUtil.blankRenderFunction;
         this.hasHandler = !!errorHandler;
 
+        this.contextObject.parameters = {};
         if (req.params) {
-            this.contextObject.parameters = {};
             Object.assign(this.contextObject.parameters, req.params);
         }
 
-        if (req.body) {
-            this.contextObject.body = {};
-            Object.assign(this.contextObject.body, req.params);
+        this.contextObject.query = {};
+        if (req.query) {
+            Object.assign(this.contextObject.parameters, req.query);
         }
 
+        this.contextObject.body = {};
+        if (req.body) {
+            Object.assign(this.contextObject.body, req.body);
+        }
+
+        this.contextObject.session = {};
         if (req.session) {
-            this.contextObject.session = {};
             Object.assign(this.contextObject.session, req.session);
         }
         return this;

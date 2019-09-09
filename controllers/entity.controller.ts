@@ -1,31 +1,33 @@
-import { Router, Request, Response } from 'express';
-import Screen from '../core/screen';
-import RenderUtil from '../utils/render.util';
-import DatabaseUtil from '../utils/database.util';
-import ExpressUtil from '../utils/express.util';
+import { Request, Response, Router } from 'express';
+import { Screen } from '../core/screen';
+import { DatabaseUtil } from '../utils/database.util';
+import { ExpressUtil } from '../utils/express.util';
+import { RenderUtil } from '../utils/render.util';
 
-const router: Router = Router();
+const entityController: Router = Router();
 
-router.get('/list', (req: Request, res: Response) => {
+entityController.get('/list', (req: Request, res: Response) => {
     Screen.create(RenderUtil.getDefaultView('entity/list'), req, res).appendContext({
-        entities: DatabaseUtil.getEntityDefinitions()
+        entities: DatabaseUtil.getEntityDefinitions(),
+        headerTitle: "Entity List"
     }).renderQuietly();
 });
 
-router.get('/find/:entityName', (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinitions().find(x => x.name == req.params.entityName);
+entityController.get('/find/:entityName', (req: Request, res: Response) => {
+    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
     if (entity) {
         Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
             headerTitle: "Entity Find: " + entity.name,
-            entity: entity
+            entity: entity,
+            requestType: "find"
         }).renderQuietly();
     } else {
-        ExpressUtil.renderStaticError(req, res, `Entity '${req.params.entityName}' not defined.`);
+        ExpressUtil.renderGenericError(req, res, `Entity '${req.params.entityName}' not defined.`);
     }
 });
 
-router.post('/find/:entityName', (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinitions().find(x => x.name == req.params.entityName);
+entityController.post('/find/:entityName', (req: Request, res: Response) => {
+    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
     if (entity) {
         let whereClause: Array<string> = [];
         let inserts: Array<any> = [];
@@ -42,22 +44,119 @@ router.post('/find/:entityName', (req: Request, res: Response) => {
             Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
                 headerTitle: "Entity Find: " + entity!.name,
                 entity: entity,
-                results: results
+                results: results,
+                requestType: "find"
             }).renderQuietly();
         }).catch(err => {
-            ExpressUtil.renderStaticError(req, res, err);
+            ExpressUtil.renderGenericError(req, res, err);
         })
     } else {
-        ExpressUtil.renderStaticError(req, res, `Entity '${req.params.entityName}' not defined.`);
+        ExpressUtil.renderGenericError(req, res, `Entity '${req.params.entityName}' not defined.`);
     }
 });
 
-router.get("/sqlProcessor", (req: Request, res: Response) => {
-    Screen.create(RenderUtil.getDefaultView('entity/sqlProcessor'), req, res).renderQuietly();
+entityController.get("/edit/:entityName", (req: Request, res: Response) => {
+    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    if (entity) {
+        DatabaseUtil.transactPromise(`select * from ${entity.name} where ? limit 1`, [req.query])
+        .then((results: any) => {
+            Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
+                headerTitle: "Entity Edit: " + entity!.name,
+                entity: entity,
+                result: results[0],
+                requestType: "edit"
+            }).renderQuietly();
+        }).catch(err => {
+            ExpressUtil.renderGenericError(req, res, err);
+        })
+    } else {
+        ExpressUtil.renderGenericError(req, res, `Entity '${req.params.entityName}' not defined.`);
+    }
 });
 
-router.post("/sqlProcessor", (req: Request, res: Response) => {
-    DatabaseUtil.transactPromise(req.body.query).then(results => {
+entityController.post("/edit/:entityName", (req: Request, res: Response) => {
+    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    if (entity) {
+        DatabaseUtil.transactPromise(`update ${entity.name} set ? where ? limit 1`, [req.body, req.query])
+        .then((results: any) => {
+            DatabaseUtil.transactPromise(`select * from ${entity!.name} where ?`, req.query)
+            .then((results: any) => {
+                Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
+                    headerTitle: "Entity Find: " + entity!.name,
+                    entity: entity,
+                    result: results[0],
+                    requestType: "edit",
+                    success: "Entry saved"
+                }).renderQuietly();
+            }).catch(err => { throw err; });
+        }).catch(err => {
+            ExpressUtil.renderGenericError(req, res, err);
+        });
+    } else {
+        ExpressUtil.renderGenericError(req, res, `Entity '${req.params.entityName}' not defined.`);
+    }
+});
+
+entityController.get("/delete/:entityName", (req: Request, res: Response) => {
+    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    if (entity) {
+        DatabaseUtil.transactPromise(`select * from ${entity.name} where ? limit 1`, [req.query])
+        .then((results: any) => {
+            DatabaseUtil.transactPromise(`delete from ${entity!.name} where ?`, [req.query])
+            .then((deleteResult: any) => {
+                Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
+                    headerTitle: "Entity Create: " + entity!.name,
+                    entity: entity,
+                    result: results[0],
+                    requestType: "delete",
+                    success: "Entry deleted"
+                }).renderQuietly();
+            }).catch(err => { throw err; });
+        }).catch(err => {
+            ExpressUtil.renderGenericError(req, res, err);
+        });
+    } else {
+        ExpressUtil.renderGenericError(req, res, `Entity '${req.params.entityName}' not defined.`);
+    }
+});
+
+entityController.post("/insert/:entityName", (req: Request, res: Response) => {
+    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    if (entity) {
+        DatabaseUtil.transactPromise(`insert into ${entity.name} set ?`, [req.body.inserts])
+        .then(results => {
+            res.json({status: "ok"});
+        }).catch(err => {
+            ExpressUtil.sendJsonError(req, res, err);
+        })
+    } else {
+        ExpressUtil.sendJsonError(req, res, `Entity '${req.params.entityName}' not defined.`);
+    }
+});
+
+entityController.get("/sqlProcessor", (req: Request, res: Response) => {
+    Screen.create(RenderUtil.getDefaultView('entity/sqlProcessor'), req, res).appendContext({
+        headerTitle: "Entity SQL Processor"
+    }).renderQuietly();
+});
+
+entityController.post("/sqlProcessor", (req: Request, res: Response) => {
+    DatabaseUtil.transactPromise(req.body.query).then(data => {
+        let results: Array<Array<any>> = [];
+        let resultData: any = data;
+
+        if (!(resultData instanceof Array)) {
+            resultData = [data];
+        }
+
+        for (let resultPart of resultData) {
+            if (!(resultPart instanceof Array)) {
+                results.push([resultPart]);
+            } else {
+                results.push(resultPart);
+            }
+        }
+
         res.json(results);
     }).catch(err => {
         res.status(500).json({
@@ -66,4 +165,4 @@ router.post("/sqlProcessor", (req: Request, res: Response) => {
     })
 });
 
-export default router;
+export { entityController };

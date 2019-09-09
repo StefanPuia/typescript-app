@@ -4,22 +4,22 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
-            Entity List
+            Service List
         </div>
         <div class="card-content p-5">
             <table class="table striped table-border mt-4" data-role="table" data-cls-table-top="row flex-nowrap" 
                 data-cls-search="cell-md-8" data-cls-rows-count="cell-md-4">
                 <thead>
                     <tr>
-                        <th data-sortable="true">Entity Name</th>
-                        <th data-sortable="true">Fields</th>
+                        <th data-sortable="true">Service Name</th>
+                        <th data-sortable="true">Parameters</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <% for(let entity of entities) { %>
+                    <% for(let serviceName in services) { %>
                         <tr>
-                            <td><a href="<%=baseUrl%>/find/<%=entity.name%>"><%=entity.name%></a></td>
-                            <td><%=entity.fields.length%></td>
+                            <td><a href="<%=baseUrl%>/run/<%=serviceName%>"><%=serviceName%></a></td>
+                            <td><%=services.parameters ? services.parameters.length : 0%></td>
                         </tr>
                     <% } %>
                 </tbody>

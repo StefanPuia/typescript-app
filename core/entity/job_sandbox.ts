@@ -1,5 +1,5 @@
+import { DatabaseUtil } from '../../utils/database.util';
 import { GenericValue } from '../generic.value';
-import DatabaseUtil from '../../utils/database.util';
 
 export class JobSandbox extends GenericValue {
     public static readonly entity: string = "job_sandbox";
@@ -53,7 +53,7 @@ export class JobSandbox extends GenericValue {
     };
 
     public find(id: string): Promise<JobSandbox> {
-        return this.doSelect(id, false);
+        return this.doSelect(id);
     }
 }
 

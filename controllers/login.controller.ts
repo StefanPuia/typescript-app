@@ -1,14 +1,14 @@
-import { Router, Request, Response } from 'express';
-import Screen from '../core/screen';
-import RenderUtil from '../utils/render.util';
-import SecurityUtil from '../utils/security.util';
-import { User } from '../core/entity/user';
+import { Request, Response, Router } from 'express';
+import { UserLogin } from '../core/entity/user_login';
+import { Screen } from '../core/screen';
+import { RenderUtil } from '../utils/render.util';
+import { SecurityUtil } from '../utils/security.util';
 
-const router: Router = Router();
+const loginController: Router = Router();
 
-router.get("/login", (req: Request, res: Response) => {
+loginController.get("/login", (req: Request, res: Response) => {
     if (SecurityUtil.userLoggedIn(req)) {
-        res.redirect("/framework");
+        res.redirect(req.baseUrl);
     } else {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
             headerTitle: "Login"
@@ -16,7 +16,7 @@ router.get("/login", (req: Request, res: Response) => {
     }
 });
 
-router.post("/login", (req: Request, res: Response) => {
+loginController.post("/login", (req: Request, res: Response) => {
     const username = req.body.username;
     const password = req.body.password;
 
@@ -26,11 +26,11 @@ router.post("/login", (req: Request, res: Response) => {
         }).renderQuietly();
     }
 
-    User.create().findLogin(username, password).then(user => {
+    UserLogin.create().findLogin(username, password).then(user => {
         if (req.session) {
             req.session.user = user;
         }
-        res.redirect("/framework");
+        res.redirect(req.baseUrl);
     }).catch(err => {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
             error: err
@@ -38,15 +38,15 @@ router.post("/login", (req: Request, res: Response) => {
     });
 });
 
-router.get("/logout", (req: Request, res: Response) => {
+loginController.get("/logout", (req: Request, res: Response) => {
     if (req.session) {
         req.session.destroy(() => {
-            res.redirect("/framework/login");
+            res.redirect(req.baseUrl + "/login");
         });
     } else {
         delete req.session;
-        res.redirect("/framework/login");
+        res.redirect(req.baseUrl + "/login");
     }
 });
 
-export default router;
+export { loginController };

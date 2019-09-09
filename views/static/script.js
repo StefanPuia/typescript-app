@@ -15,6 +15,10 @@ function callServer(fetchURL = '/api', options = {}) {
             options.method = 'post';
         }
 
+        if (options.body && typeof options.body === "object") {
+            options.body = JSON.stringify(options.body);
+        }
+
         let showSpinner = true;
         if (options.spinner && options.spinner === false) {
             showSpinner = false;
@@ -35,22 +39,39 @@ function callServer(fetchURL = '/api', options = {}) {
         if (showSpinner) waitSpinner();
         fetch(fetchURL, fetchOptions)
         .then(res => {
+            return res.text();
+        })
+        .then(data => {
             switch (type) {
                 case 'json':
-                    return res.json();
+                    try {
+                        let json = JSON.parse(data);
+                        if (json.error) {
+                            throw json.error;
+                        }
+                        resolve(json);
+                    } catch(err) {
+                        console.warn(data);
+                        throw err;
+                    }
+                    break;
 
                 case 'text':
                 case 'html':
-                    return res.text();
-            }
-        })
-        .then(data => {
-            if (type === "json" && data.error) {
-                throw data.error;
+                    resolve(data);
+                    break;
             }
             resolve(data);
         })
-        .catch(reject)
+        .catch(err => {
+            if (typeof err === "object") {
+                reject(JSON.stringify(err));
+            } else if (typeof err === "string") {
+                reject(err);
+            } else {
+                reject(err.toString());
+            }
+        })
         .finally(() => {
             waitSpinner(false);
         });

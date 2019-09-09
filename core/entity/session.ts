@@ -1,5 +1,5 @@
+import { DatabaseUtil } from '../../utils/database.util';
 import { GenericValue } from '../generic.value';
-import DatabaseUtil from '../../utils/database.util';
 
 export class Session extends GenericValue {
     public static readonly entity: string = "session";
@@ -24,7 +24,7 @@ export class Session extends GenericValue {
     };
 
     public find(id: string): Promise<Session> {
-        return this.doSelect(id, false);
+        return this.doSelect(id);
     }
 }
 
