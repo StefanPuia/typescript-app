@@ -141,23 +141,13 @@ entityController.get("/sqlProcessor", (req: Request, res: Response) => {
 });
 
 entityController.post("/sqlProcessor", (req: Request, res: Response) => {
-    DatabaseUtil.transactPromise(req.body.query).then(data => {
-        let results: Array<Array<any>> = [];
-        let resultData: any = data;
-
-        if (!(resultData instanceof Array)) {
-            resultData = [data];
-        }
-
-        for (let resultPart of resultData) {
-            if (!(resultPart instanceof Array)) {
-                results.push([resultPart]);
-            } else {
-                results.push(resultPart);
-            }
-        }
-
-        res.json(results);
+    let query = req.body.query;
+    query = `select 1;\n` + query
+    query = query.split("\n").map((line: any) => {
+        return line.replace(/(.*?)--.+/, "$1");
+    }).join("\n");
+    DatabaseUtil.transactPromise(query).then((data: any) => {
+        res.json(data.slice(1));
     }).catch(err => {
         res.status(500).json({
             error: err

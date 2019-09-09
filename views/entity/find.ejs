@@ -16,6 +16,10 @@ function buildValueParameters(fields, value) {
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
+            <a class="button" href="<%=baseUrl%>/list">
+                <span class="mif-arrow-left"></span>
+                Back to list
+            </a>
             <%=headerTitle%>
         </div>
         <div class="card-content p-5">
@@ -43,8 +47,6 @@ function buildValueParameters(fields, value) {
                     <div class="cell-sm-8 offset-4">
                         <% if (requestType === "find") { %>
                             <button class="button primary">Find</button>
-                        <% } else { %>
-                            <a class="button secondary" href="<%=baseUrl%>/find/<%=entity.name%>">Back to find</a>
                         <% } %>
 
                         <% if (requestType === "edit") { %>

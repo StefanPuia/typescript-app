@@ -56,7 +56,7 @@ function runSQL() {
         displayResults(results);
     })
     .catch(err => {
-        alert(err);
+        console.log(err);
     })
     .finally(() => {
         waitSpinner(0);
@@ -68,21 +68,29 @@ function displayResults(results) {
     container.html("");
 
     for (let resultBlock of results) {
+        let table = $($("#result-table").clone(true).html());
         let fields = [];
-        for (let field of Object.keys(resultBlock[0])) {
+        for (let field of Object.keys(resultBlock instanceof Array ? resultBlock[0] : resultBlock)) {
             fields.push(field);
         }
-        let table = $($("#result-table").clone(true).html());
         table.find("thead > tr").append(fields.map(x => $("<th/>").text(x)));
-        for (let row of resultBlock) {
-            let rowEl = $("<tr/>");
-            for (let field of fields) {
-                let textValue = typeof row[field] !== "undefined" ? row[field] : "";
-                rowEl.append($("<td/>").text(textValue));
+        if (resultBlock instanceof Array) {
+            for (let row of resultBlock) {
+                table.find("tbody").append(createRow(row, fields));
             }
-            table.find("tbody").append(rowEl);
+        } else {
+            table.find("tbody").append(createRow(resultBlock, fields));
         }
         container.append(table);
     }
+}
+
+function createRow(row, fields) {
+    let rowEl = $("<tr/>");
+    for (let field of fields) {
+        let textValue = typeof row[field] !== "undefined" ? row[field] : "";
+        rowEl.append($("<td/>").text(textValue));
+    }
+    return rowEl;
 }
 </script>
