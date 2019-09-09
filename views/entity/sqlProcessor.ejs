@@ -56,7 +56,11 @@ function runSQL() {
         displayResults(results);
     })
     .catch(err => {
-        console.log(err);
+        try {
+            err = JSON.parse(err);
+            err = err.sqlMessage || err;
+        } catch (parseError) { }
+        $("#result").html("").text(err);
     })
     .finally(() => {
         waitSpinner(0);

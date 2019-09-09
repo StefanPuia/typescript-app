@@ -1,0 +1,68 @@
+<%-include(defaultView('partial/head'))%>
+<%-include(defaultView('partial/navbar'))%>
+
+<div class="container-fluid">
+    <% if (typeof error !== "undefined") { %>
+        <div class="remark alert">
+            <%=error%>
+        </div>
+    <% } %>
+    <div class="card">
+        <div class="card-header">
+            User Manager
+        </div>
+        <div class="card-content p-5">
+            <form method="POST">
+                <div class="row mb-2">
+                    <label class="cell-sm-4">User Login Id</label>
+                    <div class="cell-sm-8">
+                        <input type="text" name="userLoginId" value="<%=body.userLoginId%>">
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="cell-sm-4">Security Group</label>
+                    <div class="cell-sm-8">
+                        <input type="text" name="securityGroupId" value="<%=body.securityGroupId%>">
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="cell-sm-4">Permission</label>
+                    <div class="cell-sm-8">
+                        <input type="text" name="permissionId" value="<%=body.permissionId%>">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="cell-sm-8 offset-4">
+                        <button class="button primary">Search</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <% if (typeof users !== "undefined") { %>
+        <div class="card">
+            <div class="card-content p-5">
+                <table class="table striped table-border mt-4" data-role="table" data-cls-table-top="row flex-nowrap" 
+                    data-cls-search="cell-md-8" data-cls-rows-count="cell-md-4">
+                    <thead>
+                        <tr>
+                            <th data-sortable="true">User Login Id</th>
+                            <th data-sortable="true">Security Groups</th>
+                            <th data-sortable="true">Permissions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% for(let user of users) { %>
+                            <tr>
+                                <td><a href="<%=baseUrl%>/user/view/<%=user.user_login_id%>"><%=user.user_login_id%></a></td>
+                                <td><%=user.security_groups%></td>
+                                <td><%=user.permissions%></td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <% } %>
+    </div>
+</div>
