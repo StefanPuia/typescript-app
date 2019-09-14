@@ -34,7 +34,7 @@ entityController.post('/find/:entityName', (req: Request, res: Response) => {
 
         for (let field of entity.fields) {
             if (req.body[field.name]) {
-                whereClause.push(`${field.name} = ?`);
+                whereClause.push(`${field.name} like ?`);
                 inserts.push(req.body[field.name]);
             }
         }

@@ -2,8 +2,8 @@ import { NextFunction, Request, Response } from 'express';
 import sha256 from 'sha256';
 import { BaseConfig } from '../config/base.config';
 import { UserLogin } from '../core/entity/user_login';
-import { CacheUtil } from './cache.util';
 import { ExpressUtil } from './express.util';
+import { UserLoginSecurityGroupPermission } from '../core/view-entity/user_login.security_group_permission';
 
 export abstract class SecurityUtil {
     public static hash(input: string): string {
@@ -15,7 +15,7 @@ export abstract class SecurityUtil {
     }
 
     public static userLoggedIn(req: Request): boolean {
-        return req.session && req.session.user && req.session.cookie.expires > new Date();
+        return req.session && req.session.userLoginId && req.session.cookie.expires > new Date();
     }
 
     public static ensureLogin(req: Request, res: Response, next: NextFunction) {
@@ -26,8 +26,14 @@ export abstract class SecurityUtil {
         }
     }
 
-    public static sessionHasPermission(sessionUser: GenericObject, permissionId: string) {
-        return SecurityUtil.userLoginHasPermission(sessionUser.data.user_login_id, permissionId);
+    public static sessionHasPermission(sessionUser: string, permissionId: string) {
+        return new Promise((resolve, reject) => {
+            if (!sessionUser) {
+                resolve(false);
+            } else {
+                SecurityUtil.userLoginHasPermission(sessionUser, permissionId).then(resolve).catch(reject);
+            }
+        })
     }
 
     public static userHasPermission(user: UserLogin, permissionId: string) {
@@ -36,20 +42,15 @@ export abstract class SecurityUtil {
 
     public static userLoginHasPermission(userLoginId: string, permissionId: string) {
         return new Promise((resolve, reject) => {
-            CacheUtil.runEntityQuery(`
-                select * from 
-                user_login_security_group as ulsg
-                inner join security_group_permission as sgp using(security_group_id)
-                where ulsg.user_login_id = ? and sgp.permission_id = ?
-                limit 1
-            `, [userLoginId, permissionId]).then(results => {
+            UserLoginSecurityGroupPermission.find("UL.user_login_id = ? AND PE.permission_id = ?" , 
+                    [userLoginId, permissionId], true).then(results => {
                 resolve((results.length !== 0));
             }).catch(reject);
         })
     }
 
     public static ensureSuperUser(req: Request, res: Response, next: NextFunction) {
-        SecurityUtil.sessionHasPermission(req.session!.user, "SUPER_ADMIN")
+        SecurityUtil.sessionHasPermission(req.session!.userLoginId, "SUPER_ADMIN")
         .then(hasPermission => {
             if (hasPermission) {
                 next();
@@ -63,7 +64,7 @@ export abstract class SecurityUtil {
 
     public static ensurePermission(permissionId: string) {
         return (req: Request, res: Response, next: NextFunction) => {
-            SecurityUtil.sessionHasPermission(req.session!.user, permissionId)
+            SecurityUtil.sessionHasPermission(req.session!.userLoginId, permissionId)
             .then(hasPermission => {
                 if (hasPermission) {
                     next();

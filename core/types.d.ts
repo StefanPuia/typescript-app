@@ -43,3 +43,38 @@ type ForeignKeyDefinition = {
     onUpdate: "no action" | "restrict" | "cascade" | "set null",
     onDelete: "no action" | "restrict" | "cascade" | "set null"
 }
+
+type EntityCondition = string | ViewEntityJoinFieldDefinition | ViewEntityJoinFieldGroup | Array<ViewEntityJoinFieldGroup> | undefined;
+
+type EntityViewDefinition = {
+    name: string,
+    table: string,
+    alias: string,
+    joins?: Array<ViewEntityJoinDefinition>,
+    fields?: Array<ViewFieldDefinition>,
+    condition?: EntityCondition
+}
+
+type ViewEntityJoinDefinition = {
+    table: string,
+    alias: string,
+    joinType: "INNER" | "LEFT" | "RIGHT" | "OUTER",
+    condition?: EntityCondition
+}
+
+type ViewFieldDefinition = {
+    name?: string,
+    alias?: string,
+    value?: any
+}
+
+type ViewEntityJoinFieldDefinition = {
+    from: ViewFieldDefinition,
+    to: ViewFieldDefinition,
+    operator: string
+}
+
+type ViewEntityJoinFieldGroup = {
+    joinFields: Array<ViewEntityJoinFieldDefinition>,
+    condition: "AND" | "OR"
+}

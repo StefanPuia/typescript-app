@@ -28,7 +28,7 @@ loginController.post("/login", (req: Request, res: Response) => {
 
     UserLogin.create().findLogin(username, password).then(user => {
         if (req.session) {
-            req.session.user = user;
+            req.session.userLoginId = user.userLoginId;
         }
         res.redirect(req.baseUrl);
     }).catch(err => {
