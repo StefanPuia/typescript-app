@@ -13,6 +13,12 @@ function buildValueParameters(fields, value) {
 }
 %>
 
+<style>
+.actions-col {
+    width: 120px;
+}
+</style>
+
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
@@ -63,12 +69,12 @@ function buildValueParameters(fields, value) {
     <% if (typeof results !== "undefined") { %>
         <div class="card">
             <div class="card-content p-5">
-                <div style="overflow-x: scroll" class="pt-3">
+                <div style="overflow-x: scroll">
                     <table class="table striped table-border mt-4" data-role="table" data-cls-table-top="row flex-nowrap" 
                             data-cls-search="cell-md-8" data-cls-rows-count="cell-md-4">
                         <thead>
                             <tr>
-                                <th></th>
+                                <th class="actions-col"></th>
                                 <% for (let field of entity.fields) { %>
                                     <th><%=field.name%></th>
                                 <% } %>

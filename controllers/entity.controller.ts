@@ -3,18 +3,19 @@ import { Screen } from '../core/screen';
 import { DatabaseUtil } from '../utils/database.util';
 import { ExpressUtil } from '../utils/express.util';
 import { RenderUtil } from '../utils/render.util';
+import { EntityEngine } from '../core/engine/entity.engine';
 
 const entityController: Router = Router();
 
 entityController.get('/list', (req: Request, res: Response) => {
     Screen.create(RenderUtil.getDefaultView('entity/list'), req, res).appendContext({
-        entities: DatabaseUtil.getEntityDefinitions(),
+        entities: EntityEngine.getEntityDefinitions(),
         headerTitle: "Entity List"
     }).renderQuietly();
 });
 
 entityController.get('/find/:entityName', (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
     if (entity) {
         Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
             headerTitle: "Entity Find: " + entity.name,
@@ -27,7 +28,7 @@ entityController.get('/find/:entityName', (req: Request, res: Response) => {
 });
 
 entityController.post('/find/:entityName', (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
     if (entity) {
         let whereClause: Array<string> = [];
         let inserts: Array<any> = [];
@@ -56,7 +57,7 @@ entityController.post('/find/:entityName', (req: Request, res: Response) => {
 });
 
 entityController.get("/edit/:entityName", (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
     if (entity) {
         DatabaseUtil.transactPromise(`select * from ${entity.name} where ? limit 1`, [req.query])
         .then((results: any) => {
@@ -75,7 +76,7 @@ entityController.get("/edit/:entityName", (req: Request, res: Response) => {
 });
 
 entityController.post("/edit/:entityName", (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
     if (entity) {
         DatabaseUtil.transactPromise(`update ${entity.name} set ? where ? limit 1`, [req.body, req.query])
         .then((results: any) => {
@@ -98,7 +99,7 @@ entityController.post("/edit/:entityName", (req: Request, res: Response) => {
 });
 
 entityController.get("/delete/:entityName", (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
     if (entity) {
         DatabaseUtil.transactPromise(`select * from ${entity.name} where ? limit 1`, [req.query])
         .then((results: any) => {
@@ -121,7 +122,7 @@ entityController.get("/delete/:entityName", (req: Request, res: Response) => {
 });
 
 entityController.post("/insert/:entityName", (req: Request, res: Response) => {
-    let entity = DatabaseUtil.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
     if (entity) {
         DatabaseUtil.transactPromise(`insert into ${entity.name} set ?`, [req.body.inserts])
         .then(results => {

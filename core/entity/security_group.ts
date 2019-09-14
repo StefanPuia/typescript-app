@@ -1,5 +1,5 @@
-import { DatabaseUtil } from '../../utils/database.util';
 import { GenericValue } from '../generic.value';
+import { EntityEngine } from '../engine/entity.engine';
 
 export class SecurityGroup extends GenericValue {
     public static readonly entity: string = "security_group";
@@ -11,12 +11,12 @@ export class SecurityGroup extends GenericValue {
         "name": "security_group",
         "fields": [{
             "name": "security_group_id",
-            "type": DatabaseUtil.DATA_TYPE.ID_LONG,
+            "type": EntityEngine.DATA_TYPE.ID_LONG,
             "primaryKey": true,
             "notNull": true
         }, {
             "name": "description",
-            "type": DatabaseUtil.DATA_TYPE.DESCRIPTION
+            "type": EntityEngine.DATA_TYPE.DESCRIPTION
         }]
     };
 

@@ -1,5 +1,5 @@
-import { DatabaseUtil } from '../../utils/database.util';
 import { GenericValue } from '../generic.value';
+import { EntityEngine } from '../engine/entity.engine';
 
 export class Session extends GenericValue {
     public static readonly entity: string = "session";
@@ -12,11 +12,11 @@ export class Session extends GenericValue {
         "ignore": true,
         "fields": [{
             "name": "sid",
-            "type": "VARCHAR(255)",
+            "type": EntityEngine.DATA_TYPE.ID_VLONG,
             "primaryKey": true
         }, {
             "name": "session",
-            "type": DatabaseUtil.DATA_TYPE.TEXT
+            "type": EntityEngine.DATA_TYPE.TEXT
         }, {
             "name": "expires",
             "type": "INT(11)"

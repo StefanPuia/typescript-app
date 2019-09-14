@@ -1,5 +1,5 @@
-import { DatabaseUtil } from '../../utils/database.util';
 import { GenericValue } from '../generic.value';
+import { EntityEngine } from '../engine/entity.engine';
 
 export class JobSandbox extends GenericValue {
     public static readonly entity: string = "job_sandbox";
@@ -23,32 +23,32 @@ export class JobSandbox extends GenericValue {
         "name": "job_sandbox",
         "fields": [{
             "name": "job_id",
-            "type": DatabaseUtil.DATA_TYPE.NUMBER,
+            "type": EntityEngine.DATA_TYPE.NUMBER,
             "primaryKey": true,
             "autoIncrement": true,
             "notNull": true,
             "unique": true
         }, {
             "name": "parent_job_id",
-            "type": DatabaseUtil.DATA_TYPE.NUMBER
+            "type": EntityEngine.DATA_TYPE.NUMBER
         }, {
             "name": "status_id",
-            "type": DatabaseUtil.DATA_TYPE.ID_SHORT
+            "type": EntityEngine.DATA_TYPE.ID_SHORT
         }, {
             "name": "service",
-            "type": DatabaseUtil.DATA_TYPE.ID_LONG
+            "type": EntityEngine.DATA_TYPE.ID_LONG
         }, {
             "name": "data",
-            "type": DatabaseUtil.DATA_TYPE.TEXT
+            "type": EntityEngine.DATA_TYPE.TEXT
         }, {
             "name": "run_time",
-            "type": DatabaseUtil.DATA_TYPE.DATETIME
+            "type": EntityEngine.DATA_TYPE.DATETIME
         }, {
             "name": "max_retries",
-            "type": DatabaseUtil.DATA_TYPE.NUMBER
+            "type": EntityEngine.DATA_TYPE.NUMBER
         }, {
             "name": "result",
-            "type": DatabaseUtil.DATA_TYPE.TEXT
+            "type": EntityEngine.DATA_TYPE.TEXT
         }]
     };
 

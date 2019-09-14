@@ -1,6 +1,6 @@
-import { DatabaseUtil } from '../../utils/database.util';
 import { SecurityUtil } from '../../utils/security.util';
 import { GenericValue } from '../generic.value';
+import { EntityEngine } from '../engine/entity.engine';
 
 export class UserLogin extends GenericValue {
     public static readonly entity: string = 'user_login';
@@ -16,13 +16,13 @@ export class UserLogin extends GenericValue {
         "name": "user_login",
         "fields": [{
             "name": "user_login_id",
-            "type": DatabaseUtil.DATA_TYPE.ID_LONG,
+            "type": EntityEngine.DATA_TYPE.ID_LONG,
             "primaryKey": true,
             "notNull": true,
             "unique": true
         }, {
             "name": "password",
-            "type": DatabaseUtil.DATA_TYPE.DESCRIPTION,
+            "type": EntityEngine.DATA_TYPE.DESCRIPTION,
             "notNull": true,
             "unique": true
         }]
