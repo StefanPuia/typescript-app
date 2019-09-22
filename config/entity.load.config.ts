@@ -5,8 +5,10 @@ import { SecurityGroupPermission } from '../core/entity/security_group.permissio
 import { Session } from '../core/entity/session';
 import { UserLogin } from '../core/entity/user_login';
 import { UserLoginSecurityGroup } from '../core/entity/user_login.security_group';
+import { SystemProperty } from '../core/entity/system_property';
 
 const EntityLoad: Array<EntityDefinition> = [
+    SystemProperty.definition,
     Permission.definition,
     SecurityGroup.definition,
     SecurityGroupPermission.definition,

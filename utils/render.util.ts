@@ -2,6 +2,7 @@ import dateFormat from 'dateformat';
 import { Request, Response } from 'express';
 import path from 'path';
 import { DebugUtil } from './debug.util';
+import { LabelUtil } from './label.util';
 
 export abstract class RenderUtil {
     private static readonly moduleName: string = 'RenderUtil';
@@ -81,6 +82,7 @@ export abstract class RenderUtil {
         context.defaultView = RenderUtil.getDefaultView;
         context.dateFormat = dateFormat;
         context.baseUrl = req.baseUrl;
+        context.uiLabel = LabelUtil.get;
 
         return new Promise((resolve: any, reject: any) => {
             this.handleRenderModifier(beforeRender, req, res, context)
