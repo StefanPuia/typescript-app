@@ -53,7 +53,7 @@
                     </div>
                     <div class="cell-md-8">
                         <h3>Parameters</h3>
-                        <% for (let parameter of service.parameters) { %>
+                        <% for (let parameter of service.parameters.filter(p => ["in", "inout"].indexOf(p.mode) > -1)) { %>
                             <div class="row mb-2">
                                 <label class="cell-sm-2"><strong><%=parameter.name%> <%=(!parameter.optional) ? "*" : ""%></strong></label>
                                 <label class="cell-sm-2 text-right"><%=parameter.type%></label>

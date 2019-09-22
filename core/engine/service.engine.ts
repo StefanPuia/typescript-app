@@ -69,17 +69,13 @@ export class ServiceEngine {
             let parameterSubKey = CacheEngine.buildParameterSubKey(Object.values(parameters)) || "default";
             let cacheObject = CacheEngine.get("service", cacheName, parameterSubKey);
             if (typeof cacheObject !== "undefined") {
-                return resolve({
-                    data: cacheObject.value,
-                    cached: true
-                });
+                cacheObject.value.cached = true;
+                return resolve(cacheObject.value);
             }
             ServiceEngine.runService(serviceName, parameters).then(value => {
                 CacheEngine.store("service", cacheName, value, parameterSubKey);
-                resolve({
-                    data: value,
-                    cached: false
-                });
+                value.cached = true;
+                resolve(value);
             }).catch(reject);
         });
     }

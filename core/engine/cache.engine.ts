@@ -86,7 +86,7 @@ export class CacheEngine {
                         return undefined;
                     }
                     let cacheObject: CacheObject =  CacheEngine.getInstance().storage[type][key][subKey];
-                    if (cacheObject.expires < new Date().getTime()) {
+                    if (cacheObject && cacheObject.expires < new Date().getTime()) {
                         return undefined;
                     }
                     return cacheObject;
@@ -101,6 +101,7 @@ export class CacheEngine {
     public static clear(): void;
     public static clear(type: CacheType): void;
     public static clear(type: CacheType, key: string): void;
+    public static clear(type: CacheType, key: string, subKey: string): void;
     public static clear(type?: CacheType, key?: string, subKey?: string): void {
         if (typeof type !== "undefined") {
             if (typeof key !== "undefined") {

@@ -55,4 +55,25 @@ cacheController.get("/list/:cacheType/:cacheKey", (req: Request, res: Response) 
     }
 });
 
+cacheController.get("/clear/:type", (req: Request, res: Response) => {
+    let cacheTypeParam: any = req.params.type;
+    CacheEngine.clear(cacheTypeParam);
+    res.redirect(`${req.baseUrl}/list`);
+});
+
+cacheController.get("/clear/:type/:subType", (req: Request, res: Response) => {
+    let cacheTypeParam: any = req.params.type;
+    let cacheSubTypeParam: any = req.params.subType;
+    CacheEngine.clear(cacheTypeParam, cacheSubTypeParam);
+    res.redirect(`${req.baseUrl}/list/${cacheTypeParam}`);
+});
+
+cacheController.get("/clear/:type/:subType/:key", (req: Request, res: Response) => {
+    let cacheTypeParam: any = req.params.type;
+    let cacheSubTypeParam: any = req.params.subType;
+    let cacheSubTypeKeyParam: any = req.params.key;
+    CacheEngine.clear(cacheTypeParam, cacheSubTypeParam, cacheSubTypeKeyParam);
+    res.redirect(`${req.baseUrl}/list/${cacheTypeParam}/${cacheSubTypeParam}`);
+});
+
 export { cacheController };

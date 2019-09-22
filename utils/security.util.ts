@@ -4,6 +4,7 @@ import { BaseConfig } from '../config/base.config';
 import { UserLogin } from '../core/entity/user_login';
 import { ExpressUtil } from './express.util';
 import { UserLoginSecurityGroupPermission } from '../core/view-entity/user_login.security_group_permission';
+import { ServiceUtil } from './service.util';
 
 export abstract class SecurityUtil {
     public static hash(input: string): string {
@@ -42,9 +43,11 @@ export abstract class SecurityUtil {
 
     public static userLoginHasPermission(userLoginId: string, permissionId: string) {
         return new Promise((resolve, reject) => {
-            UserLoginSecurityGroupPermission.find("UL.user_login_id = ? AND PE.permission_id = ?" , 
-                    [userLoginId, permissionId], true).then(results => {
-                resolve((results.length !== 0));
+            ServiceUtil.runSync("UserHasPermission", {
+                userLoginId: userLoginId,
+                permissionId: permissionId
+            }, true).then(data => {
+                resolve(data.hasPermission);
             }).catch(reject);
         })
     }

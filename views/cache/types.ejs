@@ -1,6 +1,12 @@
 <%-include(defaultView('partial/head'))%>
 <%-include(defaultView('partial/navbar'))%>
 
+<style>
+.actions-col {
+    width: 60px;
+}
+</style>
+
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
@@ -11,6 +17,7 @@
                 data-cls-search="cell-md-8" data-cls-rows-count="cell-md-4">
                 <thead>
                     <tr>
+                        <th class="actions-col"></th>
                         <th data-sortable="true">Type</th>
                         <th data-sortable="true">Components</th>
                         <th data-sortable="true">Size</th>
@@ -19,6 +26,11 @@
                 <tbody>
                     <% for(let key of Object.keys(storage)) { %>
                         <tr>
+                            <td>
+                                <a href="<%=baseUrl%>/clear/<%=key%>" class="button alert">
+                                    <span class="mif-bin"></span>
+                                </a>
+                            </td>
                             <td>
                                 <a href="<%=baseUrl%>/list/<%=key%>">
                                     <%=key%>

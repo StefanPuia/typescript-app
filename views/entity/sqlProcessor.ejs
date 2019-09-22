@@ -34,7 +34,8 @@ let sqlProcessor;
 
 $(document).ready(() => {
     sqlProcessor = ace.edit($("#sqlProcessor").get(0), {
-        mode: "ace/mode/sql"
+        mode: "ace/mode/sql",
+        fontSize: "15px"
     });
 
     if (localStorage.sqlProcessorQuery) {
