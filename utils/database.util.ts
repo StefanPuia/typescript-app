@@ -4,7 +4,7 @@ import { EntityEngine } from '../core/engine/entity.engine';
 export abstract class DatabaseUtil {
     public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, 
             entityDefinitions: Array<EntityDefinition>, afterInit: Function = () => {}): void {
-        EntityEngine.initSettings(databaseConfig, entityDefinitions, afterInit);
+        EntityEngine.initSettings(databaseConfig, entityDefinitions, databaseFormatMode, afterInit);
     }
 
     public static transactPromise(query: string): Promise<Function>;

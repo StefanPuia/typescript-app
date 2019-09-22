@@ -62,7 +62,7 @@ export abstract class BaseUtil {
         return result;
     }
 
-    public static queuePromises(functions: Array<Function>, args: Array<any> = []) {
+    public static queuePromises(functions: Array<Function>, thisArg: any, args: Array<any> = []) {
         return new Promise((resolve, reject) => {
             let promiseFactories: Array<Function> = [];
             let results: Array<any> = [];
@@ -70,7 +70,7 @@ export abstract class BaseUtil {
             for (let i = 0; i < functions.length; i++) {
                 promiseFactories.push(() => {
                     return new Promise((resolve, reject) => {
-                        functions[i].call(null, args[i] || []).then((r: any) => {
+                        functions[i].call(thisArg, args[i] || []).then((r: any) => {
                             results.push(r);
                             resolve();
                         }).catch(reject);

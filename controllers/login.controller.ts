@@ -17,16 +17,16 @@ loginController.get("/login", (req: Request, res: Response) => {
 });
 
 loginController.post("/login", (req: Request, res: Response) => {
-    const username = req.body.username;
+    const userLoginId = req.body.userLoginId;
     const password = req.body.password;
 
-    if (!username || !password) {
+    if (!userLoginId || !password) {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
             error: "No username or password provided"
         }).renderQuietly();
     }
 
-    UserLogin.create().findLogin(username, password).then(user => {
+    UserLogin.create().findLogin(userLoginId, password).then(user => {
         if (req.session) {
             req.session.userLoginId = user.userLoginId;
         }

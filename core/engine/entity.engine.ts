@@ -8,8 +8,8 @@ export class EntityEngine {
     private static readonly moduleName: string = "EntityEngine";
     private mysqlConnection!: mysql.Connection;
     private initialized: boolean = false;
-    private databaseFormatMode: number = 0;
 
+    private static databaseFormatMode: number = 0;
     private static databaseConfig: DatabaseConnection;
     private static entityDefinitions: Array<EntityDefinition>;
     private static initCallback: Function;
@@ -28,7 +28,8 @@ export class EntityEngine {
         ID_VLONG: "VARCHAR(255)",
         DESCRIPTION: "VARCHAR(500)",
         BOOLEAN: "BOOLEAN",
-        TIMESTAMP: "INT(13)",
+        UNIX_TIMESTAMP: "INT(13)",
+        TIMESTAMP: "TIMESTAMP",
         DATETIME: "DATETIME",
         TEXT: "TEXT"
     }
@@ -50,10 +51,12 @@ export class EntityEngine {
         }
     }
 
-    public static initSettings(databaseConfig: DatabaseConnection, entityDefinitions: Array<EntityDefinition>, initCallback: Function) {
+    public static initSettings(databaseConfig: DatabaseConnection, entityDefinitions: Array<EntityDefinition>,
+            databaseFormatMode: number, initCallback: Function) {
         EntityEngine.databaseConfig = databaseConfig;
         EntityEngine.entityDefinitions = entityDefinitions;
         EntityEngine.initCallback = initCallback;
+        EntityEngine.databaseFormatMode = databaseFormatMode;
         EntityEngine.getInstance();
     }
 
@@ -103,21 +106,21 @@ export class EntityEngine {
 
     private reformatTables() {
         return new Promise((resolve, reject) => {
-            if (this.databaseFormatMode == EntityEngine.MODE.IGNORE) {
+            if (EntityEngine.databaseFormatMode == EntityEngine.MODE.IGNORE) {
                 DebugUtil.logInfo("Ignoring table structure", EntityEngine.moduleName);
                 resolve(false);
             } else {
                 let promiseQueue: Array<Function> = [];
-                if (this.databaseFormatMode >= EntityEngine.MODE.REBUILD) {
+                if (EntityEngine.databaseFormatMode >= EntityEngine.MODE.REBUILD) {
                     promiseQueue.push(this.dropTables);
-                } else if (this.databaseFormatMode >= EntityEngine.MODE.EXTEND) {
+                } else if (EntityEngine.databaseFormatMode >= EntityEngine.MODE.EXTEND) {
                     promiseQueue.push(this.extendTables);
                 }
-                if (this.databaseFormatMode >= EntityEngine.MODE.CREATE) {
+                if (EntityEngine.databaseFormatMode >= EntityEngine.MODE.CREATE) {
                     promiseQueue.push(this.createTables);
                 }
 
-                BaseUtil.queuePromises(promiseQueue).then(() => {
+                BaseUtil.queuePromises(promiseQueue, this).then(() => {
                     resolve(true);
                 }).catch(reject);
             }
@@ -156,7 +159,7 @@ export class EntityEngine {
                 }
             }
 
-            BaseUtil.queuePromises(tableDrops).then(() => {
+            BaseUtil.queuePromises(tableDrops, this).then(() => {
                 if (droppedTables.length) {
                     DebugUtil.logInfo(`Dropped ${droppedTables.length} table(s): ['${droppedTables.join("','")}']`, EntityEngine.moduleName);
                 }
@@ -190,7 +193,7 @@ export class EntityEngine {
                 }
             }
 
-            BaseUtil.queuePromises(tableCreates).then(() => {
+            BaseUtil.queuePromises(tableCreates, this).then(() => {
                 if (createdTables.length) {
                     DebugUtil.logInfo(`Created ${createdTables.length} table(s): ['${createdTables.join("','")}']`, EntityEngine.moduleName);
                 }
@@ -274,7 +277,7 @@ export class EntityEngine {
                 }
             }
 
-            BaseUtil.queuePromises(tableExtensions).then(() => {
+            BaseUtil.queuePromises(tableExtensions, this).then(() => {
                 if (extendedTables.length) {
                     DebugUtil.logInfo(`Extended ${extendedTables.length} table(s): ['${extendedTables.join("','")}']`, EntityEngine.moduleName);
                 }
