@@ -106,6 +106,9 @@ export class ServiceEngine {
 
     private static validateInParameters(serviceName: string, parameters: GenericObject): Array<any> {
         let service = ServiceEngine.getService(serviceName);
+        if (!service) {
+            throw new Error(`Service '${serviceName}' does not exist.`);
+        }
         let parameterList: Array<any> = [];
         for (let parameterDef of service.parameters!.filter(p => p.mode === "in" || p.mode === "inout")) {
             let parameter = parameters[parameterDef.name];

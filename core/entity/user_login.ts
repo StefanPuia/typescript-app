@@ -23,8 +23,7 @@ export class UserLogin extends GenericValue {
         }, {
             "name": "password",
             "type": EntityEngine.DATA_TYPE.DESCRIPTION,
-            "notNull": true,
-            "unique": true
+            "notNull": true
         }]
     };
 
