@@ -16,6 +16,11 @@ type CookieSettings = {
     }
 }
 
+type SocialAuth = {
+    clientID: string,
+    clientSecret: string
+}
+
 type EntityDefinition = {
     name: string,
     ignore?: boolean,

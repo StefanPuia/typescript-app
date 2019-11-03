@@ -11,7 +11,7 @@ export class UserLoginSecurityGroup extends GenericValue {
         "name": "user_login_security_group",
         "fields": [{
             "name": "user_login_id",
-            "type": EntityEngine.DATA_TYPE.ID_LONG,
+            "type": EntityEngine.DATA_TYPE.NUMBER,
             "primaryKey": true,
             "notNull": true
         }, {

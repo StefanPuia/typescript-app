@@ -1,4 +1,4 @@
-///<reference path='./core/types.d.ts'/>
+///<reference path='./core/types/index.d.ts'/>
 
 import { BaseConfig } from './config/base.config';
 import { EntityLoad } from './config/entity.load.config';

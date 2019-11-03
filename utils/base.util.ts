@@ -156,4 +156,19 @@ export abstract class BaseUtil {
         output += size + 'B';
         return output;
     }
+
+    public static makeQueryString(params: GenericObject): string;
+    public static makeQueryString(params: GenericObject, prependQM: boolean): string;
+    public static makeQueryString(params: GenericObject, prependQM: boolean, excludeEncoding: Array<string>): string;
+    public static makeQueryString(params: GenericObject, prependQM: boolean = false, excludeEncoding: Array<string> = []): string {
+        const search:Array<string> = [];
+        for (let key in params) {
+            if (excludeEncoding.indexOf(key) > -1) {
+                search.push(`${key}=${params[key]}`);
+            } else {
+                search.push(`${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`);
+            }
+        }
+        return (prependQM ? "?" : "") + search.join("&");
+    }
 }

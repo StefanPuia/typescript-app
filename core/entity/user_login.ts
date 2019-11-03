@@ -16,14 +16,28 @@ export class UserLogin extends GenericValue {
         "name": "user_login",
         "fields": [{
             "name": "user_login_id",
-            "type": EntityEngine.DATA_TYPE.ID_LONG,
+            "type": EntityEngine.DATA_TYPE.NUMBER,
             "primaryKey": true,
+            "autoIncrement": true,
             "notNull": true,
             "unique": true
         }, {
             "name": "password",
-            "type": EntityEngine.DATA_TYPE.DESCRIPTION,
-            "notNull": true
+            "type": EntityEngine.DATA_TYPE.DESCRIPTION
+        }, {
+            "name": "google_id",
+            "type": EntityEngine.DATA_TYPE.ID_VLONG,
+            "unique": true
+        }, {
+            "name": "discord_id",
+            "type": EntityEngine.DATA_TYPE.ID_VLONG,
+            "unique": true
+        }, {
+            "name": "name",
+            "type": EntityEngine.DATA_TYPE.ID_VLONG
+        }, {
+            "name": "picture",
+            "type": EntityEngine.DATA_TYPE.DESCRIPTION
         }]
     };
 
@@ -71,9 +85,29 @@ export class UserLogin extends GenericValue {
     public set password(password: string) {
         this.set("password", password);
     }
+
+    public get name() {
+        return this.get("name");
+    }
+
+    public get googleId() {
+        return this.get("google_id");
+    }
+
+    public get discordId() {
+        return this.get("discord_id");
+    }
+
+    public get picture() {
+        return this.get("picture");
+    }
 }
 
 interface userData {
     user_login_id: string,
-    password: string
+    password: string,
+    google_id: string,
+    discord_id: string,
+    name: string,
+    picture: string
 }

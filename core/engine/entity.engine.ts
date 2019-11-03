@@ -1,12 +1,12 @@
-import mysql from 'mysql2';
 import { DebugUtil } from '../../utils/debug.util';
 import { BaseUtil } from '../../utils/base.util';
 import { BaseConfig } from '../../config/base.config';
 import { CacheEngine } from './cache.engine';
+import { Connection, createConnection } from "mysql2";
 
 export class EntityEngine {
     private static readonly moduleName: string = "EntityEngine";
-    private mysqlConnection!: mysql.Connection;
+    private mysqlConnection!: Connection;
     private initialized: boolean = false;
 
     private static databaseFormatMode: number = 0;
@@ -68,7 +68,7 @@ export class EntityEngine {
     }
 
     private handleDisconnect(): void {
-        this.mysqlConnection = mysql.createConnection(EntityEngine.databaseConfig);
+        this.mysqlConnection = createConnection(EntityEngine.databaseConfig);
 
         this.mysqlConnection.connect((err: any) => {
             if (err) {

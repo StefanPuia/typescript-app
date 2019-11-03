@@ -15,6 +15,31 @@ export abstract class SecurityUtil {
         return this.hash(password + BaseConfig.passwordSalt);
     }
 
+    public static socialLogin(req:Request, res: Response, userData: GenericObject) {
+        return new Promise((resolve, reject) => {
+            let conditions = [];
+            let inserts = [];
+            if (userData.google_id) { conditions.push("google_id=?"); inserts.push(userData.google_id); }
+            if (userData.discord_id) { conditions.push("discord_id=?"); inserts.push(userData.discord_id); }
+            UserLogin.findAll(`${conditions.join(" AND ")}`, inserts)
+            .then(users => {
+                if(users.length) {
+                    req.session!.userLoginId = users[0].userLoginId;
+                    req.session!.userName = users[0].name;
+                    resolve();
+                } else {
+                    let userLogin = UserLogin.create();
+                    userLogin.setData(userData);
+                    userLogin.store().then(user => {
+                        req.session!.userLoginId = userData.user_login_id;
+                        req.session!.userName = userData.name;
+                        resolve();
+                    }).catch(reject);
+                }
+            }).catch(reject);
+        })
+    }
+
     public static userLoggedIn(req: Request): boolean {
         return req.session && req.session.userLoginId && req.session.cookie.expires > new Date();
     }
