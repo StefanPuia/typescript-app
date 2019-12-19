@@ -3,7 +3,7 @@ import { Screen } from '../core/screen';
 import { DatabaseUtil } from '../utils/database.util';
 import { ExpressUtil } from '../utils/express.util';
 import { RenderUtil } from '../utils/render.util';
-import { EntityEngine } from '../core/engine/entity.engine';
+import { EntityEngine } from '../core/engine/entity/entity.engine';
 
 const entityController: Router = Router();
 

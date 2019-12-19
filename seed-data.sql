@@ -6,3 +6,5 @@ insert into security_group(security_group_id, description) values
 
 insert into security_group_permission(security_group_id, permission_id) values
     ('SUPER', 'SUPER_ADMIN');
+
+insert into user_login_security_group(user_login_id, security_group_id) values (1, 'SUPER');

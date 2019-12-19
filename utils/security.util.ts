@@ -1,9 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import sha256 from 'sha256';
 import { BaseConfig } from '../config/base.config';
-import { UserLogin } from '../core/entity/user_login';
+import { UserLogin } from '../core/entity-definition/user_login';
 import { ExpressUtil } from './express.util';
-import { UserLoginSecurityGroupPermission } from '../core/view-entity/user_login.security_group_permission';
 import { ServiceUtil } from './service.util';
 
 export abstract class SecurityUtil {
@@ -15,6 +14,7 @@ export abstract class SecurityUtil {
         return this.hash(password + BaseConfig.passwordSalt);
     }
 
+    /* TODO move this to the project */
     public static socialLogin(req:Request, res: Response, userData: GenericObject) {
         return new Promise((resolve, reject) => {
             let conditions = [];
@@ -30,8 +30,8 @@ export abstract class SecurityUtil {
                 } else {
                     let userLogin = UserLogin.create();
                     userLogin.setData(userData);
-                    userLogin.store().then(user => {
-                        req.session!.userLoginId = userData.user_login_id;
+                    userLogin.store().then((user: any) => {
+                        req.session!.userLoginId = user.insertId;
                         req.session!.userName = userData.name;
                         resolve();
                     }).catch(reject);

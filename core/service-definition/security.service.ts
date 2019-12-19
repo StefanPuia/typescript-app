@@ -1,5 +1,5 @@
 import { ServiceStorage } from '../engine/service.engine';
-import { UserLoginSecurityGroupPermission } from '../view-entity/user_login.security_group_permission';
+import { UserLoginSecurityGroupPermission } from '../entity-definition/view-entity/user_login.security_group_permission';
 
 const SecurityServices: ServiceStorage = {
     "UserHasPermission": {
@@ -18,7 +18,7 @@ const SecurityServices: ServiceStorage = {
         "parameters": [{
             "name": "userLoginId",
             "mode": "in",
-            "type": "string"
+            "type": "number"
         }, {
             "name": "permissionId",
             "mode": "in",

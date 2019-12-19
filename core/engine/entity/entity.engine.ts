@@ -1,7 +1,7 @@
-import { DebugUtil } from '../../utils/debug.util';
-import { BaseUtil } from '../../utils/base.util';
-import { BaseConfig } from '../../config/base.config';
-import { CacheEngine } from './cache.engine';
+import { DebugUtil } from '../../../utils/debug.util';
+import { BaseUtil } from '../../../utils/base.util';
+import { BaseConfig } from '../../../config/base.config';
+import { CacheEngine } from '../cache.engine';
 import { Connection, createConnection } from "mysql2";
 
 export class EntityEngine {
@@ -54,6 +54,9 @@ export class EntityEngine {
     public static initSettings(databaseConfig: DatabaseConnection, entityDefinitions: Array<EntityDefinition>,
             databaseFormatMode: number, initCallback: Function) {
         EntityEngine.databaseConfig = databaseConfig;
+        for (const entity of entityDefinitions) {
+            entity.fields = entity.fields.concat(EntityEngine.timestampFields);
+        }
         EntityEngine.entityDefinitions = entityDefinitions;
         EntityEngine.initCallback = initCallback;
         EntityEngine.databaseFormatMode = databaseFormatMode;
@@ -65,6 +68,10 @@ export class EntityEngine {
             EntityEngine.instance = new EntityEngine();
         }
         return EntityEngine.instance;
+    }
+
+    private static getConnection() {
+        return this.getInstance().mysqlConnection;
     }
 
     private handleDisconnect(): void {
@@ -127,7 +134,7 @@ export class EntityEngine {
         })
     }
 
-    private dropTables(): Promise<Function> {
+    private dropTables(): Promise<any> {
         return new Promise((resolve: any, reject: any) => {
             let droppedTables: Array<string> = [];
             let tableDrops: Array<Function> = [];
@@ -219,9 +226,6 @@ export class EntityEngine {
                 let fields: Array<string> = [];
                 for (let field of entity.fields) {
                     this.getFieldDefinition(field, primaryKeys, uniqueKeys, fields);
-                }
-                for (let timestampField of EntityEngine.timestampFields) {
-                    this.getFieldDefinition(timestampField, primaryKeys, uniqueKeys, fields);
                 }
                 let primaryKeysDef = primaryKeys.length ? `primary key (${primaryKeys.join(", ")})` : "";
                 let constraints = [fields.length ? `${fields.join(", ")}` : "", primaryKeysDef].concat(uniqueKeys);
@@ -340,7 +344,7 @@ export class EntityEngine {
         return `add column ${field.name} ${field.type} ${nullType} ${defaultExpression || autoIncrement}`;
     }
 
-    public static transactPromise(query: string = '', inserts: Array<any> = [], cache: boolean = false): Promise<Function> {
+    public static transactPromise(query: string = '', inserts: Array<any> = [], cache: boolean = false): Promise<any> {
         return new Promise((resolve, reject) => {
             this.transact(query, inserts, reject, resolve, cache);
         })
@@ -422,5 +426,40 @@ export class EntityEngine {
                 }
             });
         });
+    }
+
+    public static validateField(entityName: string, field: string): FieldDefinition {
+        return this.validateFields(entityName, [field])[0];
+    }
+
+    public static validateFields(entityName: string, fields: Array<string>): Array<FieldDefinition> {
+        const entity = this.getEntityDefinition(entityName);
+        const definitions: Array<FieldDefinition> = [];
+        if (entity) {
+            for (const field of fields) {
+                const fieldDefinition = entity.fields.find(f => f.name === field);
+                if (!fieldDefinition) {
+                    throw new Error(`Field '${field}' of entity '${entityName}' is not defined.`);
+                } else {
+                    definitions.push(fieldDefinition);
+                }
+            }
+        } else {
+            throw new Error(`Entity '${entityName}' is not defined.`);
+        }
+        return definitions;
+    }
+
+    public static makeCondition(conditions: Array<Condition>): string;
+    public static makeCondition(conditions: Array<Condition>, ejo: JoinOperator): string;
+    public static makeCondition(conditions: Array<Condition>, ejo: JoinOperator = "AND"): string {
+        const final: Array<string> = [];
+        for (const cond of conditions) {
+            let i = 0;
+            final.push(cond.clause.replace(/\?/g, () => {
+                return this.getConnection().escape(cond.inserts[i++]);
+            }))
+        }
+        return final.join(` ${ejo} `);
     }
 }

@@ -1,5 +1,5 @@
-import { DatabaseUtil } from '../utils/database.util';
-import { DebugUtil } from '../utils/debug.util';
+import { DatabaseUtil } from '../../../utils/database.util';
+import { DebugUtil } from '../../../utils/debug.util';
 
 export abstract class GenericValue {
     private static readonly moduleName = "GenericValue";
@@ -75,15 +75,15 @@ export abstract class GenericValue {
         }
     }
 
-    public insert(): Promise<Function> {
+    public insert(): Promise<any> {
         return DatabaseUtil.transactPromise(`insert into ${this.entity} set ?`, [this.data]);
     }
 
-    public update(): Promise<Function> {
+    public update(): Promise<any> {
         return DatabaseUtil.transactPromise(`update ${this.entity} set ? where ${this.primaryKeyField} = ?`, [this.data, this.primaryFieldValue]);
     }
 
-    public store(): Promise<Function> {
+    public store(): Promise<any> {
         return new Promise((resolve, reject) => {
             this.insert()
             .then(resolve)

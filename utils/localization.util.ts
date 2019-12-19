@@ -1,4 +1,4 @@
-import { SystemProperty } from '../core/entity/system_property';
+import { SystemProperty } from '../core/entity-definition/system_property';
 import { DebugUtil } from './debug.util';
 export abstract class LocalizationUtil {
     public static readonly moduleName: string = "LocalizationUtil";

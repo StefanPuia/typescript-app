@@ -1,5 +1,5 @@
-import { GenericValue } from '../generic.value';
-import { EntityEngine } from '../engine/entity.engine';
+import { GenericValue } from '../engine/entity/generic.value';
+import { EntityEngine } from '../engine/entity/entity.engine';
 
 export class Permission extends GenericValue {
     public static readonly entity: string = "permission";

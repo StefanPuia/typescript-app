@@ -1,5 +1,5 @@
-import { GenericValue } from '../generic.value';
-import { EntityEngine } from '../engine/entity.engine';
+import { GenericValue } from '../engine/entity/generic.value';
+import { EntityEngine } from '../engine/entity/entity.engine';
 
 export class UserLoginSecurityGroup extends GenericValue {
     public static readonly entity: string = "user_login_security_group";

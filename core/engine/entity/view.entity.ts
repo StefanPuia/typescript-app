@@ -1,4 +1,4 @@
-import { DatabaseUtil } from '../utils/database.util';
+import { DatabaseUtil } from '../../../utils/database.util';
 export abstract class ViewEntity {
     protected constructor() { }
     public static readonly definition: EntityViewDefinition;

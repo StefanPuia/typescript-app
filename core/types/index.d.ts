@@ -83,3 +83,10 @@ type ViewEntityJoinFieldGroup = {
     joinFields: Array<ViewEntityJoinFieldDefinition>,
     condition: "AND" | "OR"
 }
+
+type Condition = {
+    clause: string,
+    inserts: Array<any>
+}
+
+type JoinOperator = "AND" | "OR";

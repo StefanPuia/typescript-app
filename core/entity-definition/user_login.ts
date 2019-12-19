@@ -1,6 +1,6 @@
 import { SecurityUtil } from '../../utils/security.util';
-import { GenericValue } from '../generic.value';
-import { EntityEngine } from '../engine/entity.engine';
+import { GenericValue } from '../engine/entity/generic.value';
+import { EntityEngine } from '../engine/entity/entity.engine';
 
 export class UserLogin extends GenericValue {
     public static readonly entity: string = 'user_login';
@@ -22,16 +22,12 @@ export class UserLogin extends GenericValue {
             "notNull": true,
             "unique": true
         }, {
+            "name": "user_name",
+            "type": EntityEngine.DATA_TYPE.ID_LONG,
+            "unique": true,
+        }, {
             "name": "password",
             "type": EntityEngine.DATA_TYPE.DESCRIPTION
-        }, {
-            "name": "google_id",
-            "type": EntityEngine.DATA_TYPE.ID_VLONG,
-            "unique": true
-        }, {
-            "name": "discord_id",
-            "type": EntityEngine.DATA_TYPE.ID_VLONG,
-            "unique": true
         }, {
             "name": "name",
             "type": EntityEngine.DATA_TYPE.ID_VLONG
@@ -74,8 +70,27 @@ export class UserLogin extends GenericValue {
         })
     }
 
+    public findLoginByUserName(user_name: string, password: string): Promise<UserLogin> {
+        let hashedPassword = SecurityUtil.hashPassword(password);
+        return new Promise((resolve, reject) => {
+            this.doSelectAll(`upper(user_name) = upper(?) and password = ?`, [user_name, hashedPassword])
+                .then(users => {
+                    if (users.length === 0) {
+                        reject("UserLogin not found.");
+                    } else {
+                        this.setData(users[0]);
+                        resolve(this);
+                    }
+                })
+        })
+    }
+
     public get userLoginId() {
         return this.get("user_login_id");
+    }
+
+    public get userName() {
+        return this.get("user_name");
     }
 
     public get password() {
@@ -90,14 +105,6 @@ export class UserLogin extends GenericValue {
         return this.get("name");
     }
 
-    public get googleId() {
-        return this.get("google_id");
-    }
-
-    public get discordId() {
-        return this.get("discord_id");
-    }
-
     public get picture() {
         return this.get("picture");
     }
@@ -105,9 +112,8 @@ export class UserLogin extends GenericValue {
 
 interface userData {
     user_login_id: string,
+    user_name: string,
     password: string,
-    google_id: string,
-    discord_id: string,
     name: string,
     picture: string
 }

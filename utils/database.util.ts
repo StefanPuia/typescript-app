@@ -1,5 +1,5 @@
 import { DebugUtil } from './debug.util';
-import { EntityEngine } from '../core/engine/entity.engine';
+import { EntityEngine } from '../core/engine/entity/entity.engine';
 
 export abstract class DatabaseUtil {
     public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, 

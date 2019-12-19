@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { UserLogin } from '../core/entity/user_login';
+import { UserLogin } from '../core/entity-definition/user_login';
 import { Screen } from '../core/screen';
 import { RenderUtil } from '../utils/render.util';
 import { SecurityUtil } from '../utils/security.util';
@@ -17,18 +17,19 @@ loginController.get("/login", (req: Request, res: Response) => {
 });
 
 loginController.post("/login", (req: Request, res: Response) => {
-    const userLoginId = req.body.userLoginId;
+    const userName = req.body.userName;
     const password = req.body.password;
 
-    if (!userLoginId || !password) {
+    if (!userName || !password) {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
             error: "No username or password provided"
         }).renderQuietly();
     }
 
-    UserLogin.create().findLogin(userLoginId, password).then(user => {
+    UserLogin.create().findLoginByUserName(userName, password).then(user => {
         if (req.session) {
             req.session.userLoginId = user.userLoginId;
+            req.session.userName = user.userName;
         }
         res.redirect(req.baseUrl);
     }).catch(err => {

@@ -1,4 +1,4 @@
-import { ViewEntity } from '../view.entity';
+import { ViewEntity } from '../../engine/entity/view.entity';
 
 export class UserLoginSecurityGroupPermission extends ViewEntity {
     public static readonly definition: EntityViewDefinition = {
