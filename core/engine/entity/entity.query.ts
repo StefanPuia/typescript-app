@@ -80,7 +80,7 @@ export class EntityQuery {
     private buildQuery() {
         const fields = this.fields.length ? this.fields.join(", ") : "*";
         let query = `select ${fields} from ${this.entity.name} `;
-        if (this.condition) {
+        if (this.condition.replace(/[() ]/g, "") !== "") {
             query += `where ${this.condition} `;
         }
         if (this.orderByFields.length) {

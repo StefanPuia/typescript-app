@@ -49,6 +49,30 @@ export class CaseUtil {
         }
         throw new Error("Case converter not initialised properly!");
     }
+
+    public static snakeToPascal(input: string) {
+        return CaseUtil.from(CaseUtil.SNAKE).to(CaseUtil.PASCAL).convert(input);
+    }
+
+    public static snakeToCamel(input: string) {
+        return CaseUtil.from(CaseUtil.SNAKE).to(CaseUtil.CAMEL).convert(input);
+    }
+
+    public static pascalToSnake(input: string) {
+        return CaseUtil.from(CaseUtil.PASCAL).to(CaseUtil.SNAKE).convert(input);
+    }
+
+    public static pascalToCamel(input: string) {
+        return CaseUtil.from(CaseUtil.PASCAL).to(CaseUtil.CAMEL).convert(input);
+    }
+
+    public static camelToSnake(input: string) {
+        return CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(input);
+    }
+
+    public static camelToPascal(input: string) {
+        return CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.PASCAL).convert(input);
+    }
 }
 
 abstract class CaseConverter {

@@ -13,6 +13,7 @@ export class EntityEngine {
     private static databaseFormatMode: number = 0;
     private static databaseConfig: DatabaseConnection;
     private static entityDefinitions: Array<EntityDefinition>;
+    private static publicEntityDefinitions: Array<EntityDefinition>;
     private static initCallback: Function;
     private static instance: EntityEngine;
     
@@ -61,6 +62,18 @@ export class EntityEngine {
             }
         }
         EntityEngine.entityDefinitions = entityDefinitions;
+        EntityEngine.publicEntityDefinitions = entityDefinitions.map(entity => {
+            return {
+                "name": CaseUtil.snakeToPascal(entity.name),
+                "type": entity.type,
+                "fields": entity.fields.map(field => {
+                    return {
+                        "name": CaseUtil.snakeToCamel(field.name),
+                        "type": field.type
+                    }
+                })
+            }
+        })
         EntityEngine.initCallback = initCallback;
         EntityEngine.databaseFormatMode = databaseFormatMode;
         EntityEngine.getInstance();
@@ -106,12 +119,24 @@ export class EntityEngine {
         });
     }
 
+    public static getEntityNames(): Array<string> {
+        return EntityEngine.entityDefinitions.map(entity => CaseUtil.snakeToPascal(entity.name));
+    }
+
+    public static getPublicEntityDefinitions(): Array<EntityDefinition> {
+        return EntityEngine.publicEntityDefinitions;
+    }
+
     public static getEntityDefinitions(): Array<EntityDefinition> {
         return EntityEngine.entityDefinitions;
     }
 
+    public static getPublicEntityDefinition(entityName: string): EntityDefinition | undefined {
+        return this.getPublicEntityDefinitions().find(x => x.name == entityName);
+    }
+
     public static getEntityDefinition(entityName: string): EntityDefinition | undefined {
-        entityName = CaseUtil.from(CaseUtil.PASCAL).to(CaseUtil.SNAKE).convert(entityName);
+        entityName = CaseUtil.pascalToSnake(entityName);
         return this.getEntityDefinitions().find(x => x.name == entityName);
     }
 
@@ -387,7 +412,11 @@ export class EntityEngine {
                             if (!data.cached) {
                                 DebugUtil.logTiming(`Ran query ${logSql}`, queryStart, undefined, 'EntityEngine.Transact');
                             }
-                            resolve(data.data);
+                            if (data.data instanceof Array) {
+                                resolve(data.data.map((obj: any) => EntityEngine.resultsCaseChange(obj)));
+                            } else {
+                                resolve(EntityEngine.resultsCaseChange(data.data));
+                            }
                         }
                     });
                 }).catch((err: any) => {
@@ -398,6 +427,15 @@ export class EntityEngine {
                 });
             }
         });
+    }
+
+    private static resultsCaseChange(object: any): GenericObject {
+        const output: GenericObject = {};
+        const converter = CaseUtil.from(CaseUtil.SNAKE).to(CaseUtil.CAMEL);
+        for (const key of Object.keys(object)) {
+            output[converter.convert(key)] = object[key];
+        }
+        return output;
     }
 
     private cacheQuery(sql: string, inserts: Array<any> = []): Promise<any> {
@@ -441,12 +479,12 @@ export class EntityEngine {
     }
 
     public static validateFields(entityName: string, fields: Array<string>): Array<FieldDefinition> {
-        entityName = CaseUtil.from(CaseUtil.PASCAL).to(CaseUtil.SNAKE).convert(entityName);
+        entityName = CaseUtil.pascalToSnake(entityName);
         const entity = this.getEntityDefinition(entityName);
         const definitions: Array<FieldDefinition> = [];
         if (entity) {
             for (const field of fields) {
-                const fieldName = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
+                const fieldName = CaseUtil.camelToSnake(field);
                 const fieldDefinition = entity.fields.find(f => f.name === fieldName);
                 if (!fieldDefinition) {
                     throw new Error(`Field '${field}' of entity '${entityName}' is not defined.`);

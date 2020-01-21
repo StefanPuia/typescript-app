@@ -4,18 +4,21 @@ import { DatabaseUtil } from '../utils/database.util';
 import { ExpressUtil } from '../utils/express.util';
 import { RenderUtil } from '../utils/render.util';
 import { EntityEngine } from '../core/engine/entity/entity.engine';
+import { EntityQuery } from '../core/engine/entity/entity.query';
+import { GenericValue } from '../core/engine/entity/generic.value';
+import { ConditionBuilder } from '../core/engine/entity/condition.builder';
 
 const entityController: Router = Router();
 
 entityController.get('/list', (req: Request, res: Response) => {
     Screen.create(RenderUtil.getDefaultView('entity/list'), req, res).appendContext({
-        entities: EntityEngine.getEntityDefinitions(),
+        entities: EntityEngine.getPublicEntityDefinitions(),
         headerTitle: "Entity List"
     }).renderQuietly();
 });
 
 entityController.get('/find/:entityName', (req: Request, res: Response) => {
-    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getPublicEntityDefinition(req.params.entityName);
     if (entity) {
         Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
             headerTitle: "Entity Find: " + entity.name,
@@ -28,27 +31,23 @@ entityController.get('/find/:entityName', (req: Request, res: Response) => {
 });
 
 entityController.post('/find/:entityName', (req: Request, res: Response) => {
-    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getPublicEntityDefinition(req.params.entityName);
     if (entity) {
-        let whereClause: Array<string> = [];
-        let inserts: Array<any> = [];
-
+        let ecb = ConditionBuilder.create()
         for (let field of entity.fields) {
             if (req.body[field.name]) {
-                whereClause.push(`${field.name} like ?`);
-                inserts.push(req.body[field.name]);
+                ecb.eq(field.name, req.body[field.name]);
             }
         }
-
-        DatabaseUtil.transactPromise(`select * from ${entity.name} ${whereClause.length ? "where " + whereClause.join(' and ') : ""}`, inserts)
-        .then(results => {
+        EntityQuery.from(req.params.entityName).where(ecb).queryList()
+        .then((results: Array<GenericValue>) => {
             Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
                 headerTitle: "Entity Find: " + entity!.name,
                 entity: entity,
                 results: results,
                 requestType: "find"
             }).renderQuietly();
-        }).catch(err => {
+        }).catch((err: Error) => {
             ExpressUtil.renderGenericError(req, res, err);
         })
     } else {

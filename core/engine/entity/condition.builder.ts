@@ -102,32 +102,68 @@ export class ConditionBuilder {
 
     public eq(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
+        field = CaseUtil.camelToSnake(field);
         return this.appendCondition(`${field} = ?`, value);
     }
 
     public gt(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
+        field = CaseUtil.camelToSnake(field);
         return this.appendCondition(`${field} > ?`, value);
     }
 
     public gtEq(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
+        field = CaseUtil.camelToSnake(field);
         return this.appendCondition(`${field} >= ?`, value);
     }
 
     public lt(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
+        field = CaseUtil.camelToSnake(field);
         return this.appendCondition(`${field} < ?`, value);
     }
 
     public ltEq(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
+        field = CaseUtil.camelToSnake(field);
         return this.appendCondition(`${field} <= ?`, value);
+    }
+
+    public like(field: string, value: any): ConditionBuilder {
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.camelToSnake(field);
+        return this.appendCondition(`${field} like ?`, value);
+    }
+
+    public contains(field: string, value: any): ConditionBuilder {
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.camelToSnake(field);
+        return this.appendCondition(`${field} like ?`, `%${value}%`);
+    }
+
+    public startsWith(field: string, value: any): ConditionBuilder {
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.camelToSnake(field);
+        return this.appendCondition(`${field} like ?`, `${value}%`);
+    }
+
+    public endsWith(field: string, value: any): ConditionBuilder {
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.camelToSnake(field);
+        return this.appendCondition(`${field} like ?`, `%${value}`);
+    }
+
+    public in(field: string, value: Array<any>): ConditionBuilder {
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.camelToSnake(field);
+        return this.appendCondition(`${field} in ?`, value);
+    }
+
+    public notIn(field: string, value: Array<any>): ConditionBuilder {
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.camelToSnake(field);
+        return this.appendCondition(`${field} not in ?`, value);
     }
 
     public setEntity(entityName: string): ConditionBuilder {
