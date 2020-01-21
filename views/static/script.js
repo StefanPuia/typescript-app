@@ -20,7 +20,7 @@ function callServer(fetchURL = '/api', options = {}) {
         }
 
         let showSpinner = true;
-        if (options.spinner && options.spinner === false) {
+        if (options.spinner !== undefined && options.spinner === false) {
             showSpinner = false;
             delete options.spinner;
         }
