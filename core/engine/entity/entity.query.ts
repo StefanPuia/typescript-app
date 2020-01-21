@@ -1,8 +1,8 @@
 import { EntityEngine } from './entity.engine';
 import { GenericValue } from './generic.value';
+import { ConditionBuilder } from './condition.builder';
 
 export class EntityQuery {
-    private static instance: EntityQuery;
     private entityName: string;
     private entity: EntityDefinition;
     private fields: Array<string> = [];
@@ -32,9 +32,15 @@ export class EntityQuery {
         return this;
     }
 
-    public where(condition: Condition): EntityQuery {
-        this.condition = condition.clause;
-        this.inserts = condition.inserts;
+    public where(condition: Condition | ConditionBuilder | string): EntityQuery {
+        if (typeof condition === "string") {
+            this.condition = condition;
+        } else if (condition instanceof ConditionBuilder) {
+            this.condition = condition.setEntity(this.entityName).build();
+        } else {
+            this.condition = condition.clause;
+            this.inserts = condition.inserts;
+        }
         return this;
     }
 

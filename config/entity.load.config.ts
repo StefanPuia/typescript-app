@@ -6,6 +6,7 @@ import { Session } from '../core/entity-definition/session';
 import { UserLogin } from '../core/entity-definition/user_login';
 import { UserLoginSecurityGroup } from '../core/entity-definition/user_login.security_group';
 import { SystemProperty } from '../core/entity-definition/system_property';
+import { UserLoginSecurityGroupPermission } from '../core/entity-definition/view-entity/user_login.security_group_permission';
 
 const EntityLoad: Array<EntityDefinition> = [
     SystemProperty.definition,
@@ -15,7 +16,8 @@ const EntityLoad: Array<EntityDefinition> = [
     UserLogin.definition,
     UserLoginSecurityGroup.definition,
     JobSandbox.definition,
-    Session.definition
+    Session.definition,
+    UserLoginSecurityGroupPermission.definition
 ];
 
 export { EntityLoad };

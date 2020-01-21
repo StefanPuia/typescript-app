@@ -3,6 +3,7 @@ import { BaseUtil } from '../../../utils/base.util';
 import { BaseConfig } from '../../../config/base.config';
 import { CacheEngine } from '../cache.engine';
 import { Connection, createConnection } from "mysql2";
+import { CaseUtil } from '../../../utils/case.util';
 
 export class EntityEngine {
     private static readonly moduleName: string = "EntityEngine";
@@ -55,7 +56,9 @@ export class EntityEngine {
             databaseFormatMode: number, initCallback: Function) {
         EntityEngine.databaseConfig = databaseConfig;
         for (const entity of entityDefinitions) {
-            entity.fields = entity.fields.concat(EntityEngine.timestampFields);
+            if (entity.type !== "VIEW") {
+                entity.fields = entity.fields.concat(EntityEngine.timestampFields);
+            }
         }
         EntityEngine.entityDefinitions = entityDefinitions;
         EntityEngine.initCallback = initCallback;
@@ -108,6 +111,7 @@ export class EntityEngine {
     }
 
     public static getEntityDefinition(entityName: string): EntityDefinition | undefined {
+        entityName = CaseUtil.from(CaseUtil.PASCAL).to(CaseUtil.SNAKE).convert(entityName);
         return this.getEntityDefinitions().find(x => x.name == entityName);
     }
 
@@ -159,7 +163,7 @@ export class EntityEngine {
                                 }
 
                                 droppedTables.push(entity.name);
-                                EntityEngine.transactPromise(`drop table if exists ${entity.name}`).then(resolve).catch(reject);
+                                EntityEngine.transactPromise(`drop ${entity.type} if exists ${entity.name}`).then(resolve).catch(reject);
                             }).catch(reject);
                         });
                     });
@@ -238,7 +242,11 @@ export class EntityEngine {
                             on update ${fk.onUpdate}`);
                     }
                 }
-                resolve(`create table if not exists ${entity.name} (${constraints.filter(x => x.trim() !== "").join(", ")})`);
+                if (entity.type === "TABLE") {
+                    resolve(`create table if not exists ${entity.name} (${constraints.filter(x => x.trim() !== "").join(", ")})`);
+                } else {
+                    resolve(`create view ${entity.name} as ${entity.viewDefinition}`);
+                }
             }).catch(reject);
         })
     }
@@ -262,7 +270,7 @@ export class EntityEngine {
             let tableExtensions: Array<Function> = [];
             if (EntityEngine.entityDefinitions) {
                 for (let entity of EntityEngine.entityDefinitions) {
-                    if (entity.ignore) {
+                    if (entity.ignore || entity.type === "VIEW") {
                         DebugUtil.logInfo(`Ignoring entity '${entity.name}'`, EntityEngine.moduleName);
                         continue;
                     }
@@ -415,7 +423,7 @@ export class EntityEngine {
 
     private query(sql: string, inserts?: Array<any>): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.mysqlConnection.query(sql, (err: any, data: any) => {
+            this.mysqlConnection.query(sql, inserts, (err: any, data: any) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -433,11 +441,13 @@ export class EntityEngine {
     }
 
     public static validateFields(entityName: string, fields: Array<string>): Array<FieldDefinition> {
+        entityName = CaseUtil.from(CaseUtil.PASCAL).to(CaseUtil.SNAKE).convert(entityName);
         const entity = this.getEntityDefinition(entityName);
         const definitions: Array<FieldDefinition> = [];
         if (entity) {
             for (const field of fields) {
-                const fieldDefinition = entity.fields.find(f => f.name === field);
+                const fieldName = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
+                const fieldDefinition = entity.fields.find(f => f.name === fieldName);
                 if (!fieldDefinition) {
                     throw new Error(`Field '${field}' of entity '${entityName}' is not defined.`);
                 } else {

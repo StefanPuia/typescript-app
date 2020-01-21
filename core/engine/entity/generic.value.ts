@@ -1,5 +1,6 @@
 import { DatabaseUtil } from '../../../utils/database.util';
 import { DebugUtil } from '../../../utils/debug.util';
+import { CaseUtil } from '../../../utils/case.util';
 
 export abstract class GenericValue {
     private static readonly moduleName = "GenericValue";
@@ -37,6 +38,7 @@ export abstract class GenericValue {
         return caseSensitiveClause(fields, caseSensitive);
 
         function caseSensitiveClause(field: string, caseSensitive: boolean): string {
+            field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
             if (caseSensitive) {
                 return `${field} = ?`;
             }
@@ -63,11 +65,13 @@ export abstract class GenericValue {
     }
 
     public get(key: string): any {
+        key = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(key);
         if (!this.data) throw new Error(`"${this.entity}" record not initialized`);
         return this.data[key];
     }
 
     public set(key: string, value: any): void {
+        key = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(key);
         if (this.data) {
             this.data[key] = value;
         } else {

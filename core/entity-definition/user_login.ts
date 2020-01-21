@@ -14,6 +14,7 @@ export class UserLogin extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "user_login",
+        "type": "TABLE",
         "fields": [{
             "name": "user_login_id",
             "type": EntityEngine.DATA_TYPE.NUMBER,

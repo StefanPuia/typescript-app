@@ -23,9 +23,11 @@ type SocialAuth = {
 
 type EntityDefinition = {
     name: string,
+    type: "VIEW" | "TABLE",
     ignore?: boolean,
     foreignKeys?: Array<ForeignKeyDefinition>,
-    fields: Array<FieldDefinition>
+    fields: Array<FieldDefinition>,
+    viewDefinition?: string
 }
 
 type FieldDefinition = {

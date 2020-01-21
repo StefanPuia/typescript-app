@@ -9,6 +9,7 @@ export class Session extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "sessions",
+        "type": "TABLE",
         "ignore": true,
         "fields": [{
             "name": "sid",

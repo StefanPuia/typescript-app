@@ -13,6 +13,7 @@ export class Oauth extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "oauth",
+        "type": "TABLE",
         "fields": [{
             "name": "user_login_id",
             "type": EntityEngine.DATA_TYPE.NUMBER,

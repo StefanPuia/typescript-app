@@ -9,6 +9,7 @@ export class UserLoginSecurityGroup extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "user_login_security_group",
+        "type": "TABLE",
         "fields": [{
             "name": "user_login_id",
             "type": EntityEngine.DATA_TYPE.NUMBER,

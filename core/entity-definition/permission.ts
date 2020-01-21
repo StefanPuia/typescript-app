@@ -9,6 +9,7 @@ export class Permission extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "permission",
+        "type": "TABLE",
         "fields": [{
             "name": "permission_id",
             "type": EntityEngine.DATA_TYPE.ID_LONG,

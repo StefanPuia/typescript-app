@@ -21,6 +21,7 @@ export class JobSandbox extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "job_sandbox",
+        "type": "TABLE",
         "fields": [{
             "name": "job_id",
             "type": EntityEngine.DATA_TYPE.NUMBER,

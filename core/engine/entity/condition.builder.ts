@@ -1,19 +1,28 @@
-import { GenericValue } from './generic.value';
 import { EntityEngine } from './entity.engine';
 import { TypeEngine } from '../type.engine';
+import { CaseUtil } from '../../../utils/case.util';
 
 export class ConditionBuilder {
-    private entityName: string;
+    private entityName: string | undefined;
     private parent: ECGroup;
     private groups: Array<ECGroup> = [];
+    private validateOnBuild: boolean = false;
+    private validationPairs: Array<Array<any>> = [];
 
-    private constructor(entityName: string, joinOperator: JoinOperator) {
-        this.entityName = entityName;
+    private constructor(entityName: string | undefined, joinOperator: JoinOperator) {
+        if (typeof entityName === "undefined") {
+            this.validateOnBuild = true;
+            this.entityName = undefined;
+        } else {
+            this.entityName = entityName;
+        }
         this.parent = new ECGroup(joinOperator);
 
-        const definition = EntityEngine.getEntityDefinition(this.entityName);
-        if (!definition) {
-            throw new Error(`Entity '${this.entityName}' is not defined.`);
+        if (this.entityName) {
+            const definition = EntityEngine.getEntityDefinition(this.entityName);
+            if (!definition) {
+                throw new Error(`Entity '${this.entityName}' is not defined.`);
+            }
         }
     }
 
@@ -25,14 +34,30 @@ export class ConditionBuilder {
         return this;
     }
 
-    private validatePairs(field: string, value: any, nullCheck: boolean = false) {
-        const fieldDefinition = EntityEngine.validateField(this.entityName, field);
-        TypeEngine.convert(value, fieldDefinition.type, nullCheck);
+    private queueForValidation(field: string, value: any, nullCheck: boolean = false) {
+        if (this.validateOnBuild) {
+            this.validationPairs.push([field, value, nullCheck]);
+        } else {
+            this.validatePairs(field, value, nullCheck);
+        }
     }
 
+    private validatePairs(field: string, value: any, nullCheck: boolean = false) {
+        if (this.entityName) {
+            const fieldDefinition = EntityEngine.validateField(this.entityName, field);
+            TypeEngine.convert(value, fieldDefinition.type, nullCheck);
+        } else {
+            throw new Error(`Condition pairs cannot be validated: No entity name was given.`);
+        }
+    }
+
+    public static create(): ConditionBuilder;
+    public static create(joinOperator: JoinOperator): ConditionBuilder;
     public static create(entityName: string): ConditionBuilder;
     public static create(entityName: string, joinOperator: JoinOperator): ConditionBuilder;
-    public static create(entityName: string, joinOperator: JoinOperator = "AND"): ConditionBuilder {
+    public static create(): ConditionBuilder {
+        let entityName: undefined | string | JoinOperator = arguments[0];
+        let joinOperator: JoinOperator = arguments[1] || "AND";
         return new ConditionBuilder(entityName, joinOperator);
     }
 
@@ -76,33 +101,52 @@ export class ConditionBuilder {
     }
 
     public eq(field: string, value: any): ConditionBuilder {
-        this.validatePairs(field, value, true);
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
         return this.appendCondition(`${field} = ?`, value);
     }
 
     public gt(field: string, value: any): ConditionBuilder {
-        this.validatePairs(field, value, true);
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
         return this.appendCondition(`${field} > ?`, value);
     }
 
     public gtEq(field: string, value: any): ConditionBuilder {
-        this.validatePairs(field, value, true);
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
         return this.appendCondition(`${field} >= ?`, value);
     }
 
     public lt(field: string, value: any): ConditionBuilder {
-        this.validatePairs(field, value, true);
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
         return this.appendCondition(`${field} < ?`, value);
     }
 
     public ltEq(field: string, value: any): ConditionBuilder {
-        this.validatePairs(field, value, true);
+        this.queueForValidation(field, value, true);
+        field = CaseUtil.from(CaseUtil.CAMEL).to(CaseUtil.SNAKE).convert(field);
         return this.appendCondition(`${field} <= ?`, value);
+    }
+
+    public setEntity(entityName: string): ConditionBuilder {
+        if (typeof this.entityName === "undefined") {
+            this.entityName = entityName;
+            return this;
+        } else {
+            throw new Error("Cannot change the entity after initialisation.")
+        }
     }
 
     public build(): string {
         if (this.groups.length > 0) {
             throw new Error("There are unclosed groups");
+        }
+        if (this.validateOnBuild) {
+            for (const pair of this.validationPairs) {
+                this.validatePairs(pair[0], pair[1], pair[2]);
+            }
         }
         return this.parent.build();
     }

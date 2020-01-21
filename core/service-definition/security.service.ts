@@ -1,18 +1,18 @@
 import { ServiceStorage } from '../engine/service.engine';
-import { UserLoginSecurityGroupPermission } from '../entity-definition/view-entity/user_login.security_group_permission';
+import { ConditionBuilder } from '../engine/entity/condition.builder';
+import { EntityQuery } from '../engine/entity/entity.query';
 
 const SecurityServices: ServiceStorage = {
     "UserHasPermission": {
         "sync": false,
         "caller": (userLoginId: string, permissionId: string) => {
             return new Promise((resolve, reject) => {
-                UserLoginSecurityGroupPermission.find("UL.user_login_id = ? AND PE.permission_id = ?",
-                    [userLoginId, permissionId]).then(ulsgp => {
-                        let hasPermission: boolean = (ulsgp && ulsgp.length !== 0);
-                        resolve({
-                            hasPermission: hasPermission
-                        });
-                    }).catch(reject);
+                const ecb = ConditionBuilder.create()
+                    .eq("userLoginId", userLoginId)
+                    .eq("permissionId", permissionId);
+
+                EntityQuery.from("UserLoginSecurityGroupPermission").where(ecb).queryFirst()
+                    .then(ulsgp => { resolve({ hasPermission: !!ulsgp }) }).catch(reject);
             })
         },
         "parameters": [{

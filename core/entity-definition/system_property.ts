@@ -9,6 +9,7 @@ export class SystemProperty extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "system_property",
+        "type": "TABLE",
         "fields": [{
             "name": "system_property_id",
             "type": EntityEngine.DATA_TYPE.ID_LONG,

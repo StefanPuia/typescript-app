@@ -9,6 +9,7 @@ export class SecurityGroupPermission extends GenericValue {
 
     public static readonly definition: EntityDefinition = {
         "name": "security_group_permission",
+        "type": "TABLE",
         "fields": [{
             "name": "security_group_id",
             "type": EntityEngine.DATA_TYPE.ID_LONG,
