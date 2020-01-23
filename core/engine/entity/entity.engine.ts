@@ -379,14 +379,14 @@ export class EntityEngine {
         return `add column ${field.name} ${field.type} ${nullType} ${defaultExpression || autoIncrement}`;
     }
 
-    public static transactPromise(query: string = '', inserts: Array<any> = [], cache: boolean = false): Promise<any> {
+    public static transactPromise(query: string = '', inserts: Array<any> = [], cache: boolean = false, applyCase: boolean = true): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.transact(query, inserts, reject, resolve, cache);
+            this.transact(query, inserts, reject, resolve, cache, applyCase);
         })
     }
 
     public static transact(query: string = '', inserts: Array<any> = [], reject: Function = DebugUtil.logInfo,
-        resolve: Function = DebugUtil.logError, cache: boolean = false): void {
+        resolve: Function = DebugUtil.logError, cache: boolean = false, applyCase: boolean = true): void {
 
         if (!EntityEngine.getInstance().initialized) {
             return reject('Entity Engine not initialized');
@@ -402,7 +402,7 @@ export class EntityEngine {
             } else {
                 let func: Function = EntityEngine.getInstance().query;
                 if (cache) func = EntityEngine.getInstance().cacheQuery;
-                func.apply(EntityEngine.getInstance(), [sql, inserts]).then((data: any) => {
+                func.apply(EntityEngine.getInstance(), [sql, inserts]).then((result: any) => {
                     EntityEngine.getInstance().mysqlConnection.commit((err: any) => {
                         if (err) {
                             DebugUtil.logError(err, 'EntityEngine.TransactCommit');
@@ -411,13 +411,17 @@ export class EntityEngine {
                                 reject(err);
                             });
                         } else {
-                            if (!data.cached) {
+                            if (!result.cached) {
                                 DebugUtil.logTiming(`Ran query ${logSql}`, queryStart, undefined, 'EntityEngine.Transact');
                             }
-                            if (data.data instanceof Array) {
-                                resolve(data.data.map((obj: any) => EntityEngine.resultsCaseChange(obj)));
+                            if (applyCase) {
+                                if (result.data instanceof Array) {
+                                    resolve(result.data.map((obj: any) => EntityEngine.resultsCaseChange(obj)));
+                                } else {
+                                    resolve(EntityEngine.resultsCaseChange(result.data));
+                                }
                             } else {
-                                resolve(EntityEngine.resultsCaseChange(data.data));
+                                resolve(result.data);
                             }
                         }
                     });

@@ -146,7 +146,7 @@ entityController.post("/sqlProcessor", (req: Request, res: Response) => {
     query = query.split("\n").map((line: any) => {
         return line.replace(/(.*?)--.+/, "$1");
     }).join("\n");
-    DatabaseUtil.transactPromise(query).then((data: any) => {
+    EntityEngine.transactPromise(query, [], false, false).then((data: any) => {
         res.json(data.slice(1));
     }).catch(err => {
         res.status(500).json({

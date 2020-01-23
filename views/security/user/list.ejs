@@ -61,9 +61,9 @@
                     <tbody>
                         <% for(let user of users) { %>
                             <tr>
-                                <td><a href="<%=baseUrl%>/user/view/<%=user.user_login_id%>"><%=user.user_login_id%></a></td>
-                                <td><%=user.user_name || "-"%></a></td>
-                                <td><%=user.security_groups || 0%></td>
+                                <td><a href="<%=baseUrl%>/user/view/<%=user.userLoginId%>"><%=user.userLoginId%></a></td>
+                                <td><%=user.userName || "-"%></a></td>
+                                <td><%=user.securityGroups || 0%></td>
                                 <td><%=user.permissions || 0%></td>
                             </tr>
                         <% } %>
