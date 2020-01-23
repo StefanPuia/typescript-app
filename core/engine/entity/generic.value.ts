@@ -16,7 +16,7 @@ export class GenericValue {
     public create(): void { }
 
     public setData(data: any): void {
-        for (const field of data) {
+        for (const field of Object.keys(data)) {
             EntityEngine.validateField(this.entityName, field);
             this.data[field] = data[field];
         }

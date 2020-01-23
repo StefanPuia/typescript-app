@@ -1,0 +1,62 @@
+<%-include(defaultView('partial/head'))%>
+<%-include(defaultView('partial/navbar'))%>
+
+<script src="https://pagecdn.io/lib/ace/1.4.5/ace.js"></script>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            Javascript Processor
+        </div>
+        <div class="card-content p-5">
+            <div id="jsProcessor" style="height: 300px" class="mb-3"></div>
+            <a href="javascript:execute()" class="button success">
+                <span class="mif-play"></span> Run
+            </a>
+        </div>
+        <div class="card-footer">
+            <pre id="result" style="width: 100%;"></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+let jsProcessor;
+
+$(document).ready(() => {
+    jsProcessor = ace.edit($("#jsProcessor").get(0), {
+        mode: "ace/mode/javascript",
+        fontSize: "15px"
+    });
+
+    jsProcessor.commands.addCommand({
+        name: "execute",
+        bindKey: {win: "Ctrl-Enter", mac: "Command-Enter"},
+        exec: execute
+    })
+
+    if (localStorage.jsProcessorCode) {
+        jsProcessor.getSession().setValue(localStorage.jsProcessorCode);
+    }
+})
+
+function execute() {
+    let query = jsProcessor.getSession().getValue();
+    localStorage.jsProcessorCode = query;
+    query = query.trim();
+    if (query === "") return;
+    waitSpinner();
+    callServer("<%=baseUrl%>/jsProcessor", {
+        responseType: "text",
+        body: JSON.stringify({
+            query: query
+        })
+    }).then(display).catch(display).finally(() => {
+        waitSpinner(0);
+    })
+}
+
+function display(text) {
+    $("#result").html(text);
+}
+</script>

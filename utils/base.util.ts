@@ -4,7 +4,9 @@ import { DebugUtil } from './debug.util';
 import morgan = require('morgan');
 
 export abstract class BaseUtil {
-    public static stringify(value: any): string {
+    public static stringify(value: any): string;
+    public static stringify(value: any, pretty: boolean): string;
+    public static stringify(value: any, pretty: boolean = false): string {
         if (typeof value === 'string') {
             return value;
         }
@@ -12,6 +14,9 @@ export abstract class BaseUtil {
             return value.message;
         }
         try {
+            if (pretty) {
+                return JSON.stringify(value, null, 4);
+            }
             return JSON.stringify(value);
         } catch(e) {
             return value.toString();
