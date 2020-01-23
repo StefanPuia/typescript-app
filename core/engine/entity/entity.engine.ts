@@ -456,9 +456,9 @@ export class EntityEngine {
                 });
             }
             this.query(sql).then(value => {
-                CacheEngine.store("entity", cacheName, value, parameterSubKey);
+                CacheEngine.store("entity", cacheName, value.data, parameterSubKey);
                 resolve({
-                    data: value,
+                    data: value.data,
                     cached: false
                 });
             }).catch(reject);
