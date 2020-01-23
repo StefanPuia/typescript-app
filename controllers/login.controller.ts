@@ -1,8 +1,9 @@
 import { Request, Response, Router } from 'express';
-import { UserLogin } from '../core/entity-definition/user_login';
 import { Screen } from '../core/screen';
 import { RenderUtil } from '../utils/render.util';
 import { SecurityUtil } from '../utils/security.util';
+import { EntityQuery } from '../core/engine/entity/entity.query';
+import { GenericValue } from '../core/engine/entity/generic.value';
 
 const loginController: Router = Router();
 
@@ -18,7 +19,7 @@ loginController.get("/login", (req: Request, res: Response) => {
 
 loginController.post("/login", (req: Request, res: Response) => {
     const userName = req.body.userName;
-    const password = req.body.password;
+    const password = SecurityUtil.hashPassword(req.body.password);
 
     if (!userName || !password) {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
@@ -26,10 +27,10 @@ loginController.post("/login", (req: Request, res: Response) => {
         }).renderQuietly();
     }
 
-    UserLogin.create().findLoginByUserName(userName, password).then(user => {
+    EntityQuery.from("UserLogin").where(["userName", userName, "password", password]).queryFirst().then((user: GenericValue) => {
         if (req.session) {
-            req.session.userLoginId = user.userLoginId;
-            req.session.userName = user.userName;
+            req.session.userLoginId = user.get("userLoginId");
+            req.session.userName = user.get("userName");
         }
         res.redirect(req.baseUrl);
     }).catch(err => {

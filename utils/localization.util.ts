@@ -1,14 +1,14 @@
-import { SystemProperty } from '../core/entity-definition/system_property';
 import { DebugUtil } from './debug.util';
+import { EntityQuery } from '../core/engine/entity/entity.query';
 export abstract class LocalizationUtil {
     public static readonly moduleName: string = "LocalizationUtil";
     public static readonly localeSystemProperty: string = "default.locale";
     public static defaultLocale: Locale = "en_GB";
 
     public static assignDefaultLocale(): void {
-        SystemProperty.create().find(this.localeSystemProperty)
+        EntityQuery.from("SystemProperty").where(["systemPropertyId", this.localeSystemProperty]).queryFirst()
         .then(systemProperty => {
-            LocalizationUtil.defaultLocale = systemProperty.value || LocalizationUtil.defaultLocale;
+            LocalizationUtil.defaultLocale = systemProperty.get("value") || LocalizationUtil.defaultLocale;
         }).catch(err => {
             DebugUtil.logError(err, this.moduleName);
         });

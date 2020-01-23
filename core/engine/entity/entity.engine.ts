@@ -4,6 +4,8 @@ import { BaseConfig } from '../../../config/base.config';
 import { CacheEngine } from '../cache.engine';
 import { Connection, createConnection } from "mysql2";
 import { CaseUtil } from '../../../utils/case.util';
+import { GenericValue } from './generic.value';
+import { TypeEngine } from '../type.engine';
 
 export class EntityEngine {
     private static readonly moduleName: string = "EntityEngine";
@@ -277,7 +279,7 @@ export class EntityEngine {
     }
 
     private getFieldDefinition(field: FieldDefinition, primaryKeys: Array<string>, uniqueKeys: Array<string>, fields: Array<string>) {
-        let nullType = field.notNull ? "not null" : "null";
+        let nullType = field.notNull ? "not null" : "";
         let autoIncrement = field.autoIncrement ? "auto_increment" : "";
         let defaultExpression = field.default ? "DEFAULT " + field.default : "";
         if (field.primaryKey === true) {
@@ -478,6 +480,13 @@ export class EntityEngine {
         return this.validateFields(entityName, [field])[0];
     }
 
+    public static validateFieldValuePair(entityName: string, field: string, value: any): void;
+    public static validateFieldValuePair(entityName: string, field: string, value: any, nullCheck: boolean): void;
+    public static validateFieldValuePair(entityName: string, field: string, value: any, nullCheck: boolean = false): void {
+        const fieldDefinition = EntityEngine.validateField(entityName, field);
+        TypeEngine.convert(value, fieldDefinition.type, nullCheck);
+    }
+
     public static validateFields(entityName: string, fields: Array<string>): Array<FieldDefinition> {
         entityName = CaseUtil.pascalToSnake(entityName);
         const entity = this.getEntityDefinition(entityName);
@@ -509,5 +518,17 @@ export class EntityEngine {
             }))
         }
         return final.join(` ${ejo} `);
+    }
+
+    public static insert(entity: string, values: Array<GenericValue>) {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
+    }
+
+    public static update(entity: string, values: Array<GenericValue>) {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
     }
 }

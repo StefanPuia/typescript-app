@@ -92,7 +92,7 @@ function buildValueParameters(fields, value) {
                                         </a>
                                     </td>
                                     <% for (let field of entity.fields) { %>
-                                        <td><%=result[field.name]%></td>
+                                        <td><%=result.data[field.name]%></td>
                                     <% } %>
                                 </tr>
                             <% } %>

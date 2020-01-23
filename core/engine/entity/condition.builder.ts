@@ -44,8 +44,7 @@ export class ConditionBuilder {
 
     private validatePairs(field: string, value: any, nullCheck: boolean = false) {
         if (this.entityName) {
-            const fieldDefinition = EntityEngine.validateField(this.entityName, field);
-            TypeEngine.convert(value, fieldDefinition.type, nullCheck);
+            EntityEngine.validateFieldValuePair(this.entityName, field, value, nullCheck);
         } else {
             throw new Error(`Condition pairs cannot be validated: No entity name was given.`);
         }

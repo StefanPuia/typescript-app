@@ -32,14 +32,35 @@ export class EntityQuery {
         return this;
     }
 
-    public where(condition: Condition | ConditionBuilder | string): EntityQuery {
-        if (typeof condition === "string") {
-            this.condition = condition;
+    public where(condition: Condition): EntityQuery;
+    public where(condition: ConditionBuilder): EntityQuery;
+    public where(condition: string): EntityQuery;
+    public where(condition: GenericObject): EntityQuery;
+    public where(condition: Array<string>): EntityQuery;
+    public where(condition: Condition | ConditionBuilder | string | GenericObject | Array<string>): EntityQuery {
+        if (condition instanceof Array) {
+            if (condition.length % 2 !== 0) {
+                throw new Error("Parameters must be even.")
+            }
+            const ecb = ConditionBuilder.create();
+            for (let i = 0; i < condition.length; i = i + 2) {
+                ecb.eq(condition[i], condition[i + 1]);
+            }
+            return this.where(ecb);
         } else if (condition instanceof ConditionBuilder) {
             this.condition = condition.setEntity(this.entityName).build();
-        } else {
+        } else if (typeof condition === "string") {
+            this.condition = condition;
+        } else if (typeof condition.clause !== "undefined" && typeof condition.inserts !== "undefined") {
             this.condition = condition.clause;
             this.inserts = condition.inserts;
+        } else {
+            const ecb = ConditionBuilder.create();
+            const condObject: any = condition;
+            for (const key of Object.keys(condObject)) {
+                ecb.eq(key, condObject[key]);
+            }
+            return this.where(ecb);
         }
         return this;
     }
@@ -57,13 +78,21 @@ export class EntityQuery {
     }
 
     public queryList(): Promise<Array<GenericValue>> {
-        return EntityEngine.transactPromise(this.buildQuery(), this.inserts, this.doCache);
+        return new Promise((resolve, reject) => {
+            EntityEngine.transact(this.buildQuery(), this.inserts, reject, (results: any) => {
+                const values: Array<GenericValue> = [];
+                for (const result of results) {
+                    values.push(new GenericValue(this.entityName, result));
+                }
+                resolve(values);
+            }, this.doCache);
+        });
     }
 
     public queryFirst(): Promise<GenericValue> {
         return new Promise((resolve, reject) => {
             EntityEngine.transact(`${this.buildQuery()} limit 1`, this.inserts, reject, (results: any) => {
-                resolve(results[0]);
+                resolve(new GenericValue(this.entityName, results[0]));
             }, this.doCache);
         });
     }

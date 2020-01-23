@@ -1,9 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import sha256 from 'sha256';
 import { BaseConfig } from '../config/base.config';
-import { UserLogin } from '../core/entity-definition/user_login';
 import { ExpressUtil } from './express.util';
 import { ServiceUtil } from './service.util';
+import { ConditionBuilder } from '../core/engine/entity/condition.builder';
+import { EntityQuery } from '../core/engine/entity/entity.query';
+import { GenericValue } from '../core/engine/entity/generic.value';
 
 export abstract class SecurityUtil {
     public static hash(input: string): string {
@@ -17,19 +19,17 @@ export abstract class SecurityUtil {
     /* TODO move this to the project */
     public static socialLogin(req:Request, res: Response, userData: GenericObject) {
         return new Promise((resolve, reject) => {
-            let conditions = [];
-            let inserts = [];
-            if (userData.google_id) { conditions.push("google_id=?"); inserts.push(userData.google_id); }
-            if (userData.discord_id) { conditions.push("discord_id=?"); inserts.push(userData.discord_id); }
-            UserLogin.findAll(`${conditions.join(" AND ")}`, inserts)
+            const ecb = ConditionBuilder.create();
+            if (userData.google_id) { ecb.eq("googleId", userData.google_id); }
+            if (userData.discord_id) { ecb.eq("discordId", userData.discordId); }
+            EntityQuery.from("UserLogin").where(ecb).queryList()
             .then(users => {
                 if(users.length) {
-                    req.session!.userLoginId = users[0].userLoginId;
-                    req.session!.userName = users[0].name;
+                    req.session!.userLoginId = users[0].get("userLoginId");
+                    req.session!.userName = users[0].get("name");
                     resolve();
                 } else {
-                    let userLogin = UserLogin.create();
-                    userLogin.setData(userData);
+                    let userLogin = new GenericValue("UserLogin", userData)
                     userLogin.store().then((user: any) => {
                         req.session!.userLoginId = user.insertId;
                         req.session!.userName = userData.name;
@@ -62,8 +62,8 @@ export abstract class SecurityUtil {
         })
     }
 
-    public static userHasPermission(user: UserLogin, permissionId: string) {
-        return SecurityUtil.userLoginHasPermission(user.userLoginId, permissionId);
+    public static userHasPermission(user: GenericValue, permissionId: string) {
+        return SecurityUtil.userLoginHasPermission(user.get("userLoginId"), permissionId);
     }
 
     public static userLoginHasPermission(userLoginId: string, permissionId: string) {
