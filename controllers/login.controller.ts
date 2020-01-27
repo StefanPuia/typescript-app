@@ -28,11 +28,15 @@ loginController.post("/login", (req: Request, res: Response) => {
     }
 
     EntityQuery.from("UserLogin").where(["userName", userName, "password", password]).queryFirst().then((user: GenericValue) => {
-        if (req.session) {
-            req.session.userLoginId = user.get("userLoginId");
-            req.session.userName = user.get("userName");
+        if (user) {
+            if (req.session) {
+                req.session.userLoginId = user.get("userLoginId");
+                req.session.userName = user.get("userName");
+            }
+            res.redirect(req.baseUrl);
+        } else {
+            throw new Error("Username or password not found.");
         }
-        res.redirect(req.baseUrl);
     }).catch(err => {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
             error: err

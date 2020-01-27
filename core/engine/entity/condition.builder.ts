@@ -1,9 +1,9 @@
 import { EntityEngine } from './entity.engine';
-import { TypeEngine } from '../type.engine';
 import { CaseUtil } from '../../../utils/case.util';
+import { DynamicEntity } from './dynamic.entity';
 
 export class ConditionBuilder {
-    private entityName: string | undefined;
+    private entity: string | DynamicEntity | undefined;
     private parent: ECGroup;
     private groups: Array<ECGroup> = [];
     private validateOnBuild: boolean = false;
@@ -12,16 +12,16 @@ export class ConditionBuilder {
     private constructor(entityName: string | undefined, joinOperator: JoinOperator) {
         if (typeof entityName === "undefined") {
             this.validateOnBuild = true;
-            this.entityName = undefined;
+            this.entity = undefined;
         } else {
-            this.entityName = entityName;
+            this.entity = entityName;
         }
         this.parent = new ECGroup(joinOperator);
 
-        if (this.entityName) {
-            const definition = EntityEngine.getEntityDefinition(this.entityName);
+        if (this.entity) {
+            const definition = EntityEngine.getEntityDefinition(this.entity);
             if (!definition) {
-                throw new Error(`Entity '${this.entityName}' is not defined.`);
+                throw new Error(`Entity '${this.entity}' is not defined.`);
             }
         }
     }
@@ -43,8 +43,8 @@ export class ConditionBuilder {
     }
 
     private validatePairs(field: string, value: any, nullCheck: boolean = false) {
-        if (this.entityName) {
-            EntityEngine.validateFieldValuePair(this.entityName, field, value, nullCheck);
+        if (this.entity) {
+            EntityEngine.validateFieldValuePair(this.entity, field, value, nullCheck);
         } else {
             throw new Error(`Condition pairs cannot be validated: No entity name was given.`);
         }
@@ -101,73 +101,62 @@ export class ConditionBuilder {
 
     public eq(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} = ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} = ?`, value);
     }
 
     public gt(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} > ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} > ?`, value);
     }
 
     public gtEq(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} >= ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} >= ?`, value);
     }
 
     public lt(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} < ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} < ?`, value);
     }
 
     public ltEq(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} <= ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} <= ?`, value);
     }
 
     public like(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} like ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} like ?`, value);
     }
 
     public contains(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} like ?`, `%${value}%`);
+        return this.appendCondition(`${this.sanitizeField(field)} like ?`, `%${value}%`);
     }
 
     public startsWith(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} like ?`, `${value}%`);
+        return this.appendCondition(`${this.sanitizeField(field)} like ?`, `${value}%`);
     }
 
     public endsWith(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} like ?`, `%${value}`);
+        return this.appendCondition(`${this.sanitizeField(field)} like ?`, `%${value}`);
     }
 
     public in(field: string, value: Array<any>): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} in ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} in ?`, value);
     }
 
     public notIn(field: string, value: Array<any>): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        field = CaseUtil.camelToSnake(field);
-        return this.appendCondition(`${field} not in ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} not in ?`, value);
     }
 
-    public setEntity(entityName: string): ConditionBuilder {
-        if (typeof this.entityName === "undefined") {
-            this.entityName = entityName;
+    public setEntity(entityName: string | DynamicEntity): ConditionBuilder {
+        if (typeof this.entity === "undefined") {
+            this.entity = entityName;
             return this;
         } else {
             throw new Error("Cannot change the entity after initialisation.")
@@ -184,6 +173,13 @@ export class ConditionBuilder {
             }
         }
         return this.parent.build();
+    }
+
+    private sanitizeField(_field: string): string {
+        const field = EntityEngine.parseField(_field);
+        const sqlName = CaseUtil.camelToSnake(field.name);
+        if (field.alias) return `${field.alias}.${sqlName}`;
+        return sqlName;
     }
 }
 

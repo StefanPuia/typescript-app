@@ -6,6 +6,7 @@ import { Connection, createConnection } from "mysql2";
 import { CaseUtil } from '../../../utils/case.util';
 import { GenericValue } from './generic.value';
 import { TypeEngine } from '../type.engine';
+import { DynamicEntity } from './dynamic.entity';
 
 export class EntityEngine {
     private static readonly moduleName: string = "EntityEngine";
@@ -480,15 +481,37 @@ export class EntityEngine {
         });
     }
 
-    public static validateField(entityName: string, field: string): FieldDefinition {
-        return this.validateFields(entityName, [field])[0];
+    public static validateField(entity: string | DynamicEntity, _field: string): FieldDefinition {
+        const field = EntityEngine.parseField(_field);
+        if (entity instanceof DynamicEntity) {
+            const dynamicDef = entity.fieldExists(_field);
+            if (dynamicDef) {
+                const entityDef = this.getPublicEntityDefinition(entity.getEntity(dynamicDef.alias || entity.getBaseAlias()).def.name);
+                if (!entityDef) {
+                    throw new Error(`Could not find the entity definition for field '${_field}'`);
+                }
+                const definition = entityDef.fields.find(f => f.name === field.name);
+                if (!definition) {
+                    throw new Error(`Could not find the field definition for '${_field}' on '${entityDef.name}' entity.`);
+                }
+                return definition;
+            } else {
+                throw new Error(`Could not find the definition for the field '${_field}'`);
+            }
+        } else {
+            return this.validateFields(entity, [field.name])[0];
+        }
     }
 
-    public static validateFieldValuePair(entityName: string, field: string, value: any): void;
-    public static validateFieldValuePair(entityName: string, field: string, value: any, nullCheck: boolean): void;
-    public static validateFieldValuePair(entityName: string, field: string, value: any, nullCheck: boolean = false): void {
-        const fieldDefinition = EntityEngine.validateField(entityName, field);
-        TypeEngine.convert(value, fieldDefinition.type, nullCheck);
+    public static validateFieldValuePair(entity: string | DynamicEntity, field: string, value: any): void;
+    public static validateFieldValuePair(entity: string | DynamicEntity, field: string, value: any, nullCheck: boolean): void;
+    public static validateFieldValuePair(entity: string | DynamicEntity, field: string, value: any, nullCheck: boolean = false): void {
+        let fieldDefinition = EntityEngine.validateField(entity, field);
+        if (fieldDefinition) {
+            TypeEngine.convert(value, fieldDefinition.type, nullCheck);
+        } else {
+            throw new Error(`Could not find the definition for the field '${field}'`);
+        }
     }
 
     public static validateFields(entityName: string, fields: Array<string>): Array<FieldDefinition> {
@@ -500,7 +523,7 @@ export class EntityEngine {
                 const fieldName = CaseUtil.camelToSnake(field);
                 const fieldDefinition = entity.fields.find(f => f.name === fieldName);
                 if (!fieldDefinition) {
-                    throw new Error(`Field '${field}' of entity '${entityName}' is not defined.`);
+                    throw new Error(`Field '${fieldName}' of entity '${entityName}' is not defined.`);
                 } else {
                     definitions.push(fieldDefinition);
                 }
@@ -534,5 +557,48 @@ export class EntityEngine {
         return new Promise((resolve, reject) => {
             resolve();
         });
+    }
+
+    public static parseField(_field: string): DynamicDefinition {
+        const parts = _field.trim().split(".").filter(x => x.trim() !== "");
+        let alias = undefined;
+        let field = "";
+        if (parts.length === 1) {
+            field = parts[0];
+        } else if (parts.length === 2) {
+            alias = parts[0];
+            field = parts[1];
+        } else {
+            throw new Error(`'${_field}' is not a valid field definition.`);
+        }
+
+        return { alias: alias, name: field };
+    }
+
+    public static parseOrderBy(_field: string): OrderByField {
+        const field = this.parseField(_field);
+        const orderBy: OrderByField = {
+            name: field.name,
+            asc: true
+        }
+        if (field.alias) orderBy.alias = field.alias;
+        const parts = orderBy.name.split(" ").filter(f => f.trim() !== "");
+        if (parts.length === 2) {
+            orderBy.name = parts[0];
+            const modifIndex = ["asc", "desc"].indexOf(parts[1].toLowerCase());
+            if (modifIndex > -1) {
+                orderBy.asc = modifIndex === 0;
+            } else {
+                throw new Error(`Order by modifier '${parts[0]}' for field '${_field}' not supported`);
+            }
+        } else if(parts.length === 1) {
+            if (orderBy.name.substr(0, 1) === "-") {
+                orderBy.asc = false;
+                orderBy.name = orderBy.name.substr(1);
+            }
+        } else {
+            throw new Error(`Field '${_field}' not supported for order by clause`);
+        }
+        return orderBy;
     }
 }

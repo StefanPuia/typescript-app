@@ -92,3 +92,30 @@ type Condition = {
 }
 
 type JoinOperator = "AND" | "OR";
+
+type DynamicDefinition = {
+    alias: string | undefined,
+    name: string
+}
+
+type JoinCondition = {
+    field: string,
+    relField?: string,
+    value?: any
+}
+
+type EntityJoin = {
+    type: "BASE" | "INNER" | "OUTER",
+    def: DynamicDefinition,
+    condition: Array<JoinCondition>
+}
+
+type EntityJoinStore = {
+    [alias: string]: EntityJoin
+}
+
+type OrderByField = {
+    alias?: string,
+    name: string,
+    asc: boolean
+}
