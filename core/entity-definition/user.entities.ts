@@ -18,7 +18,7 @@ const UserEntities: Array<EntityDefinition> = [{
         "name": "password",
         "type": EntityEngine.DATA_TYPE.DESCRIPTION
     }, {
-        "name": "name",
+        "name": "full_name",
         "type": EntityEngine.DATA_TYPE.ID_VLONG
     }, {
         "name": "picture",

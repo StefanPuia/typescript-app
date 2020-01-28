@@ -13,8 +13,6 @@ export class GenericValue {
         this.setData(data);
     }
 
-    public create(): void { }
-
     public setData(data: any): void {
         if (data) {
             for (const field of Object.keys(data)) {
@@ -24,9 +22,17 @@ export class GenericValue {
         }
     }
 
+    public getEntity() {
+        return this.entity;
+    }
+
     public get(field: string): any {
         EntityEngine.validateField(this.entity, field);
         return this.data[field];
+    }
+
+    public getData(): GenericObject {
+        return this.data;
     }
 
     public set(field: string, value: any): void {
@@ -38,14 +44,14 @@ export class GenericValue {
         if (this.entity instanceof DynamicEntity) {
             throw new Error(`Insert method not available for dynamic entities.`);
         }
-        return EntityEngine.insert(this.entity, [this]);
+        return EntityEngine.insert([this]);
     }
 
     public update(): Promise<any> {
         if (this.entity instanceof DynamicEntity) {
             throw new Error(`Update method not available for dynamic entities.`);
         }
-        return EntityEngine.update(this.entity, [this]);
+        return EntityEngine.update([this]);
     }
 
     public store(): Promise<any> {

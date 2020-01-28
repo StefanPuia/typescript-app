@@ -547,16 +547,32 @@ export class EntityEngine {
         return final.join(` ${ejo} `);
     }
 
-    public static insert(entity: string, values: Array<GenericValue>) {
+    public static insert(values: Array<GenericValue>): Promise<any> {
         return new Promise((resolve, reject) => {
-            resolve();
-        });
+            const statements: Array<SQLStatement> = values.map(EntityEngine.makeInsertStatement);
+            const inserts: Array<any> = statements.map(s => s.inserts);
+            EntityEngine.transact(statements.map(s => s.sql).join(";"), [inserts], reject, (results: any) => {
+                if (results instanceof Array) {
+                    resolve(results.map(res => res.insertid));
+                } else {
+                    resolve(results.insertid);
+                }
+            });
+        })
     }
 
-    public static update(entity: string, values: Array<GenericValue>) {
+    public static update(values: Array<GenericValue>): Promise<any> {
         return new Promise((resolve, reject) => {
-            resolve();
-        });
+            const statements: Array<SQLStatement> = values.map(EntityEngine.makeUpdateStatement);
+            const inserts: Array<any> = statements.map(s => s.inserts);
+            EntityEngine.transact(statements.map(s => s.sql).join(";"), [].concat.apply([], inserts), reject, (results: any) => {
+                if (results instanceof Array) {
+                    resolve(results.map(res => res.affectedrows));
+                } else {
+                    resolve(results.affectedrows);
+                }
+            });
+        })
     }
 
     public static parseField(_field: string): DynamicDefinition {
@@ -601,4 +617,53 @@ export class EntityEngine {
         }
         return orderBy;
     }
+
+    private static makeInsertStatement(value: GenericValue): SQLStatement {
+        const entity = value.getEntity();
+        if (entity instanceof DynamicEntity) {
+            throw new Error(`Cannot perform an insert statement on a dynamic entity ${BaseUtil.stringify(value)}`);
+        }
+        const entityDef = EntityEngine.getEntityDefinition(entity);
+        if (!entityDef) {
+            throw new Error(`Entity '${entity}' not defined.`);
+        }
+        const data = value.getData();
+        const sql = `insert into ${entityDef.name} (${Object.keys(data).map(CaseUtil.camelToSnake).join(",")}) values ?`;
+        return { sql: sql, inserts: Object.values(data)}
+    }
+
+    private static makeUpdateStatement(value: GenericValue): SQLStatement {
+        const entity = value.getEntity();
+        if (entity instanceof DynamicEntity) {
+            throw new Error(`Cannot perform an update statement on a dynamic entity ${BaseUtil.stringify(value)}`);
+        }
+        const entityDef = EntityEngine.getEntityDefinition(entity);
+        if (!entityDef) {
+            throw new Error(`Entity '${entity}' not defined.`);
+        }
+        const data = value.getData();
+        delete data.createdStamp;
+        delete data.lastUpdatedStamp;
+        const setData: GenericObject = {};
+        const pkData: GenericObject = {};
+        for (const key of Object.keys(data)) {
+            const sqlKey = CaseUtil.camelToSnake(key);
+            const fieldDef = entityDef.fields.find(f => f.name === sqlKey);
+            if (!fieldDef) {
+                throw new Error(`Field '${key}' is not valid for entity '${entity}'`);
+            }
+            if (!fieldDef.primaryKey) {
+                setData[sqlKey] = data[key];
+            } else {
+                pkData[sqlKey] = data[key];
+            }
+        }
+        const sql = `update ${entityDef.name} set ? where ?`;
+        return { sql: sql, inserts: [setData, pkData] }
+    }
+}
+
+type SQLStatement = {
+    sql: string,
+    inserts: Array<any>
 }

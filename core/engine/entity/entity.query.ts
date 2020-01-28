@@ -80,11 +80,15 @@ export class EntityQuery {
     public queryList(): Promise<Array<GenericValue>> {
         return new Promise((resolve, reject) => {
             EntityEngine.transact(this.buildQuery(), this.inserts, reject, (results: any) => {
-                const values: Array<GenericValue> = [];
-                for (const result of results) {
-                    values.push(new GenericValue(this.entityName, result));
+                try {
+                    const values: Array<GenericValue> = [];
+                    for (const result of results) {
+                        values.push(new GenericValue(this.entityName, result));
+                    }
+                    resolve(values);
+                } catch (err) {
+                    reject(err);
                 }
-                resolve(values);
             }, this.doCache);
         });
     }

@@ -154,9 +154,9 @@ export class ConditionBuilder {
         return this.appendCondition(`${this.sanitizeField(field)} not in ?`, value);
     }
 
-    public setEntity(entityName: string | DynamicEntity): ConditionBuilder {
+    public setEntity(entity: string | DynamicEntity): ConditionBuilder {
         if (typeof this.entity === "undefined") {
-            this.entity = entityName;
+            this.entity = entity;
             return this;
         } else {
             throw new Error("Cannot change the entity after initialisation.")

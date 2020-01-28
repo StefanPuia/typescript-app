@@ -69,7 +69,7 @@ export class DynamicEntity {
         const field = EntityEngine.parseField(_field);
         const validField = this.fields.find(f => f.name === field.name);
         if (!validField) {
-            throw new Error(`Field '${field}' does not exist on the dynamic entity.`);
+            throw new Error(`Field '${_field}' does not exist on the dynamic entity.`);
         }
         return validField;
     }

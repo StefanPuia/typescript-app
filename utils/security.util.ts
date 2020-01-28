@@ -6,6 +6,7 @@ import { ServiceUtil } from './service.util';
 import { ConditionBuilder } from '../core/engine/entity/condition.builder';
 import { EntityQuery } from '../core/engine/entity/entity.query';
 import { GenericValue } from '../core/engine/entity/generic.value';
+import { EntityDynamicQuery } from '../core/engine/entity/entity.dynamic.query';
 
 export abstract class SecurityUtil {
     public static hash(input: string): string {
@@ -14,30 +15,6 @@ export abstract class SecurityUtil {
 
     public static hashPassword(password: string): string {
         return this.hash(password + BaseConfig.passwordSalt);
-    }
-
-    /* TODO move this to the project */
-    public static socialLogin(req:Request, res: Response, userData: GenericObject) {
-        return new Promise((resolve, reject) => {
-            const ecb = ConditionBuilder.create();
-            if (userData.google_id) { ecb.eq("googleId", userData.google_id); }
-            if (userData.discord_id) { ecb.eq("discordId", userData.discordId); }
-            EntityQuery.from("UserLogin").where(ecb).queryList()
-            .then(users => {
-                if(users.length) {
-                    req.session!.userLoginId = users[0].get("userLoginId");
-                    req.session!.userName = users[0].get("name");
-                    resolve();
-                } else {
-                    let userLogin = new GenericValue("UserLogin", userData)
-                    userLogin.store().then((user: any) => {
-                        req.session!.userLoginId = user.insertId;
-                        req.session!.userName = userData.name;
-                        resolve();
-                    }).catch(reject);
-                }
-            }).catch(reject);
-        })
     }
 
     public static userLoggedIn(req: Request): boolean {
@@ -103,5 +80,32 @@ export abstract class SecurityUtil {
                 ExpressUtil.renderGenericError(req, res, err);
             });
         }
+    }
+
+    public static socialLogin(req:Request, res: Response, userData: GenericObject) {
+        return new Promise((resolve, reject) => {
+            const ecb = ConditionBuilder.create()
+                .eq("OA.provider", userData.provider)
+                .eq("OA.id", userData.socialId)
+            
+            EntityDynamicQuery.select("UL.*", "OA.*")
+                .from("UL", "UserLogin")
+                .innerJoin("OA", "Oauth", "userLoginId", "UL.userLoginId")
+                .where(ecb).queryFirst()
+            .then(user => {
+                if(user) {
+                    req.session!.userLoginId = user.get("userLoginId");
+                    req.session!.userName = user.get("userName");
+                    resolve();
+                } else {
+                    let userLogin = new GenericValue("UserLogin", userData)
+                    userLogin.store().then((user: any) => {
+                        req.session!.userLoginId = user.insertId;
+                        req.session!.userName = userData.name;
+                        resolve();
+                    }).catch(reject);
+                }
+            }).catch(reject);
+        })
     }
 }
