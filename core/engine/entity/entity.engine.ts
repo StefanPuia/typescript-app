@@ -2,7 +2,7 @@ import { DebugUtil } from '../../../utils/debug.util';
 import { BaseUtil } from '../../../utils/base.util';
 import { BaseConfig } from '../../../config/base.config';
 import { CacheEngine } from '../cache.engine';
-import { Connection, createConnection } from "mysql2";
+import { Connection, createConnection } from "mysql";
 import { CaseUtil } from '../../../utils/case.util';
 import { GenericValue } from './generic.value';
 import { TypeEngine } from '../type.engine';
@@ -72,7 +72,8 @@ export class EntityEngine {
                 "fields": entity.fields.map(field => {
                     return {
                         "name": CaseUtil.snakeToCamel(field.name),
-                        "type": field.type
+                        "type": field.type,
+                        "primaryKey": field.primaryKey === true
                     }
                 })
             }

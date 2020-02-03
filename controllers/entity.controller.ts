@@ -56,16 +56,20 @@ entityController.post('/find/:entityName', (req: Request, res: Response) => {
 });
 
 entityController.get("/edit/:entityName", (req: Request, res: Response) => {
-    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getPublicEntityDefinition(req.params.entityName);
     if (entity) {
-        DatabaseUtil.transactPromise(`select * from ${entity.name} where ? limit 1`, [req.query])
-        .then((results: any) => {
-            Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
-                headerTitle: "Entity Edit: " + entity!.name,
-                entity: entity,
-                result: results[0],
-                requestType: "edit"
-            }).renderQuietly();
+        EntityQuery.from(entity.name).where(req.query).queryFirst()
+        .then(result => {
+            if (result) {
+                Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
+                    headerTitle: "Entity Edit: " + entity!.name,
+                    entity: entity,
+                    result: result.getData(),
+                    requestType: "edit"
+                }).renderQuietly();
+            } else {
+                ExpressUtil.renderGenericError(req, res, `No results found for entity ${entity!.name}`);
+            }
         }).catch(err => {
             ExpressUtil.renderGenericError(req, res, err);
         })

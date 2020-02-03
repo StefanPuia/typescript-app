@@ -7,6 +7,7 @@ export abstract class OAuthEngine {
     protected abstract clientID: string;
     protected abstract clientSecret: string;
     protected abstract redirectURL: string;
+    public static redirectUrlPrefix: string = "http://teachtogether.tk/";
     protected abstract identifyURL: string;
     protected abstract scope: string;
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { BaseConfig } from '../config/base.config';
 import { DebugUtil } from './debug.util';
+import dateFormat from 'dateformat';
 import morgan = require('morgan');
 
 export abstract class BaseUtil {
@@ -12,6 +13,8 @@ export abstract class BaseUtil {
         }
         else if (value instanceof Error) {
             return value.message;
+        } else if (value instanceof Date) {
+            return dateFormat(value, "isoDateTime");
         }
         try {
             if (pretty) {

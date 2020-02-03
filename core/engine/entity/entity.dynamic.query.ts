@@ -142,7 +142,7 @@ export class EntityDynamicQuery {
     public queryFirst(): Promise<GenericValue> {
         return new Promise((resolve, reject) => {
             EntityEngine.transact(`${this.buildQuery()} limit 1`, this.inserts, reject, (results: any) => {
-                resolve(new GenericValue(this.dynamicEntity, results[0]));
+                resolve(results[0] ? new GenericValue(this.dynamicEntity, results[0]) : undefined)
             }, this.doCache);
         });
     }

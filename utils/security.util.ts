@@ -83,6 +83,7 @@ export abstract class SecurityUtil {
     }
 
     public static socialLogin(req:Request, res: Response, userData: GenericObject) {
+        console.log(userData)
         return new Promise((resolve, reject) => {
             const ecb = ConditionBuilder.create()
                 .eq("OA.provider", userData.provider)
@@ -93,16 +94,27 @@ export abstract class SecurityUtil {
                 .innerJoin("OA", "Oauth", "userLoginId", "UL.userLoginId")
                 .where(ecb).queryFirst()
             .then(user => {
+                console.log(user)
                 if(user) {
                     req.session!.userLoginId = user.get("userLoginId");
                     req.session!.userName = user.get("userName");
                     resolve();
                 } else {
-                    let userLogin = new GenericValue("UserLogin", userData)
-                    userLogin.store().then((user: any) => {
-                        req.session!.userLoginId = user.insertId;
-                        req.session!.userName = userData.name;
-                        resolve();
+                    const userLogin = new GenericValue("UserLogin", {
+                        fullName: userData.name,
+                        picture: userData.picture
+                    })
+                    userLogin.store().then(userLoginId => {
+                        const oauth = new GenericValue("Oauth", {
+                            userLoginId: userLoginId,
+                            provider: userData.provider,
+                            id: userData.socialId
+                        })
+                        oauth.store().then(() => {
+                            req.session!.userLoginId = userLoginId;
+                            req.session!.userName = userData.name;
+                            resolve();
+                        }).catch(reject);
                     }).catch(reject);
                 }
             }).catch(reject);
