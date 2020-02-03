@@ -1,8 +1,9 @@
 import { Request, Response, Router } from 'express';
-import { UserLogin } from '../core/entity/user_login';
 import { Screen } from '../core/screen';
 import { RenderUtil } from '../utils/render.util';
 import { SecurityUtil } from '../utils/security.util';
+import { EntityQuery } from '../core/engine/entity/entity.query';
+import { GenericValue } from '../core/engine/entity/generic.value';
 
 const loginController: Router = Router();
 
@@ -17,20 +18,25 @@ loginController.get("/login", (req: Request, res: Response) => {
 });
 
 loginController.post("/login", (req: Request, res: Response) => {
-    const userLoginId = req.body.userLoginId;
-    const password = req.body.password;
+    const userName = req.body.userName;
+    const password = SecurityUtil.hashPassword(req.body.password);
 
-    if (!userLoginId || !password) {
+    if (!userName || !password) {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
             error: "No username or password provided"
         }).renderQuietly();
     }
 
-    UserLogin.create().findLogin(userLoginId, password).then(user => {
-        if (req.session) {
-            req.session.userLoginId = user.userLoginId;
+    EntityQuery.from("UserLogin").where(["userName", userName, "password", password]).queryFirst().then((user: GenericValue) => {
+        if (user) {
+            if (req.session) {
+                req.session.userLoginId = user.get("userLoginId");
+                req.session.userName = user.get("userName");
+            }
+            res.redirect(req.baseUrl);
+        } else {
+            throw new Error("Username or password not found.");
         }
-        res.redirect(req.baseUrl);
     }).catch(err => {
         Screen.create(RenderUtil.getDefaultView("login/index"), req, res).appendContext({
             error: err

@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import path from 'path';
 import { DebugUtil } from './debug.util';
 import { LabelUtil } from './label.util';
+import { BaseUtil } from './base.util';
 
 export abstract class RenderUtil {
     private static readonly moduleName: string = 'RenderUtil';
@@ -25,7 +26,7 @@ export abstract class RenderUtil {
                     resolve(html);
                 });
             }).catch(error => {
-                DebugUtil.logError(error, this.moduleName);
+                DebugUtil.logError(`In '${viewName}': ${error}`, this.moduleName);
                 res.status(500).render(RenderUtil.staticError, {
                     error: error
                 });
@@ -48,7 +49,7 @@ export abstract class RenderUtil {
             afterRender: RenderModifier = this.blankRenderFunction): void {
         this.render(viewName, req, res, context, status, beforeRender, afterRender)
         .catch(err => {
-            DebugUtil.logError(err, this.moduleName);
+            DebugUtil.logError(`In '${viewName}': ${err}`, this.moduleName);
         })
     }
 
@@ -83,7 +84,9 @@ export abstract class RenderUtil {
         context.dateFormat = dateFormat;
         context.baseUrl = req.baseUrl;
         context.uiLabel = LabelUtil.get;
+        context.stringify = BaseUtil.stringify;
 
+        context.context = context;
         return new Promise((resolve: any, reject: any) => {
             this.handleRenderModifier(beforeRender, req, res, context)
             .then(() => {

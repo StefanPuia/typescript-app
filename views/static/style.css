@@ -2,6 +2,10 @@
     --appbar-height: 52px;
 }
 
+body {
+    min-height: unset;
+}
+
 .container,
 .container-fluid {
     margin-top: calc(var(--appbar-height) + 10px);
@@ -10,6 +14,7 @@
 .app-bar .app-bar-menu.app-bar-menu-right.collapsed {
     position: fixed;
     right: 0;
+    top: 0;
 }
 
 #spinner {

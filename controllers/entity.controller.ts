@@ -3,19 +3,22 @@ import { Screen } from '../core/screen';
 import { DatabaseUtil } from '../utils/database.util';
 import { ExpressUtil } from '../utils/express.util';
 import { RenderUtil } from '../utils/render.util';
-import { EntityEngine } from '../core/engine/entity.engine';
+import { EntityEngine } from '../core/engine/entity/entity.engine';
+import { EntityQuery } from '../core/engine/entity/entity.query';
+import { GenericValue } from '../core/engine/entity/generic.value';
+import { ConditionBuilder } from '../core/engine/entity/condition.builder';
 
 const entityController: Router = Router();
 
 entityController.get('/list', (req: Request, res: Response) => {
     Screen.create(RenderUtil.getDefaultView('entity/list'), req, res).appendContext({
-        entities: EntityEngine.getEntityDefinitions(),
+        entities: EntityEngine.getPublicEntityDefinitions(),
         headerTitle: "Entity List"
     }).renderQuietly();
 });
 
 entityController.get('/find/:entityName', (req: Request, res: Response) => {
-    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getPublicEntityDefinition(req.params.entityName);
     if (entity) {
         Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
             headerTitle: "Entity Find: " + entity.name,
@@ -28,27 +31,23 @@ entityController.get('/find/:entityName', (req: Request, res: Response) => {
 });
 
 entityController.post('/find/:entityName', (req: Request, res: Response) => {
-    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getPublicEntityDefinition(req.params.entityName);
     if (entity) {
-        let whereClause: Array<string> = [];
-        let inserts: Array<any> = [];
-
+        let ecb = ConditionBuilder.create()
         for (let field of entity.fields) {
             if (req.body[field.name]) {
-                whereClause.push(`${field.name} like ?`);
-                inserts.push(req.body[field.name]);
+                ecb.eq(field.name, req.body[field.name]);
             }
         }
-
-        DatabaseUtil.transactPromise(`select * from ${entity.name} ${whereClause.length ? "where " + whereClause.join(' and ') : ""}`, inserts)
-        .then(results => {
+        EntityQuery.from(req.params.entityName).where(ecb).queryList()
+        .then((results: Array<GenericValue>) => {
             Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
                 headerTitle: "Entity Find: " + entity!.name,
                 entity: entity,
                 results: results,
                 requestType: "find"
             }).renderQuietly();
-        }).catch(err => {
+        }).catch((err: Error) => {
             ExpressUtil.renderGenericError(req, res, err);
         })
     } else {
@@ -57,16 +56,20 @@ entityController.post('/find/:entityName', (req: Request, res: Response) => {
 });
 
 entityController.get("/edit/:entityName", (req: Request, res: Response) => {
-    let entity = EntityEngine.getEntityDefinition(req.params.entityName);
+    let entity = EntityEngine.getPublicEntityDefinition(req.params.entityName);
     if (entity) {
-        DatabaseUtil.transactPromise(`select * from ${entity.name} where ? limit 1`, [req.query])
-        .then((results: any) => {
-            Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
-                headerTitle: "Entity Edit: " + entity!.name,
-                entity: entity,
-                result: results[0],
-                requestType: "edit"
-            }).renderQuietly();
+        EntityQuery.from(entity.name).where(req.query).queryFirst()
+        .then(result => {
+            if (result) {
+                Screen.create(RenderUtil.getDefaultView('entity/find'), req, res).appendContext({
+                    headerTitle: "Entity Edit: " + entity!.name,
+                    entity: entity,
+                    result: result.getData(),
+                    requestType: "edit"
+                }).renderQuietly();
+            } else {
+                ExpressUtil.renderGenericError(req, res, `No results found for entity ${entity!.name}`);
+            }
         }).catch(err => {
             ExpressUtil.renderGenericError(req, res, err);
         })
@@ -147,7 +150,7 @@ entityController.post("/sqlProcessor", (req: Request, res: Response) => {
     query = query.split("\n").map((line: any) => {
         return line.replace(/(.*?)--.+/, "$1");
     }).join("\n");
-    DatabaseUtil.transactPromise(query).then((data: any) => {
+    EntityEngine.transactPromise(query, [], false, false).then((data: any) => {
         res.json(data.slice(1));
     }).catch(err => {
         res.status(500).json({

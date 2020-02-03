@@ -11,6 +11,10 @@ function buildValueParameters(fields, value) {
     }
     return urlParts.join("&");
 }
+
+function fieldValue(result, field, useBody) {
+    return (typeof result !== "undefined" && result[field] !== null) ? stringify(result[field]) : (useBody ? body[field] : "")
+}
 %>
 
 <style>
@@ -45,7 +49,7 @@ function buildValueParameters(fields, value) {
                         <label class="cell-sm-2"><strong><%=field.name%> <%=field.primaryKey ? "*" : ""%></strong></label>
                         <label class="cell-sm-2 text-right"><%=field.type%></label>
                         <div class="cell-sm-8">
-                            <input type="text" name="<%=field.name%>" value="<%=(typeof result !== "undefined") ? result[field.name] : body[field.name]%>">
+                            <input type="text" name="<%=field.name%>" value="<%=fieldValue(context.result, field.name)%>">
                         </div>
                     </div>
                 <% } %>
@@ -84,15 +88,15 @@ function buildValueParameters(fields, value) {
                             <% for(let result of results) { %>
                                 <tr>
                                     <td>
-                                        <a href="<%=baseUrl%>/edit/<%=entity.name%>?<%=buildValueParameters(entity.fields, result)%>" class="button primary">
+                                        <a href="<%=baseUrl%>/edit/<%=entity.name%>?<%=buildValueParameters(entity.fields, result.data)%>" class="button primary">
                                             <span class="mif-pencil"></span>
                                         </a>
-                                        <a href="javascript:confirmDelete('<%=baseUrl%>/delete/<%=entity.name%>?<%=buildValueParameters(entity.fields, result)%>')" class="button alert">
+                                        <a href="javascript:confirmDelete('<%=baseUrl%>/delete/<%=entity.name%>?<%=buildValueParameters(entity.fields, result.data)%>')" class="button alert">
                                             <span class="mif-bin"></span>
                                         </a>
                                     </td>
                                     <% for (let field of entity.fields) { %>
-                                        <td><%=result[field.name]%></td>
+                                        <td><%=fieldValue(result.data, field.name, false)%></td>
                                     <% } %>
                                 </tr>
                             <% } %>

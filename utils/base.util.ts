@@ -1,17 +1,25 @@
 import { Request, Response } from 'express';
 import { BaseConfig } from '../config/base.config';
 import { DebugUtil } from './debug.util';
+import dateFormat from 'dateformat';
 import morgan = require('morgan');
 
 export abstract class BaseUtil {
-    public static stringify(value: any): string {
+    public static stringify(value: any): string;
+    public static stringify(value: any, pretty: boolean): string;
+    public static stringify(value: any, pretty: boolean = false): string {
         if (typeof value === 'string') {
             return value;
         }
         else if (value instanceof Error) {
             return value.message;
+        } else if (value instanceof Date) {
+            return dateFormat(value, "isoDateTime");
         }
         try {
+            if (pretty) {
+                return JSON.stringify(value, null, 4);
+            }
             return JSON.stringify(value);
         } catch(e) {
             return value.toString();

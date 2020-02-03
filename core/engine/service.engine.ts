@@ -51,7 +51,7 @@ export class ServiceEngine {
             if (typeof cache !== "undefined" ? cache : service.cache) runServiceFunction = ServiceEngine.runServiceCache;
             let parameterList: Array<any> = ServiceEngine.validateInParameters(serviceName, parameters);
             runServiceFunction.apply(this, [serviceName, parameterList])
-            .then(data => {
+            .then((data: any) => {
                 if (!data.cached) {
                     DebugUtil.logTiming(`Ran service ${serviceName}`, serviceStart, undefined, ServiceEngine.moduleName);
                 }

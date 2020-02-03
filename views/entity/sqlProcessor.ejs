@@ -38,6 +38,12 @@ $(document).ready(() => {
         fontSize: "15px"
     });
 
+    sqlProcessor.commands.addCommand({
+        name: "execute",
+        bindKey: {win: "Ctrl-Enter", mac: "Command-Enter"},
+        exec: runSQL
+    })
+
     if (localStorage.sqlProcessorQuery) {
         sqlProcessor.getSession().setValue(localStorage.sqlProcessorQuery);
     }

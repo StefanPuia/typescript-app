@@ -20,6 +20,12 @@
                     </div>
                 </div>
                 <div class="row mb-2">
+                    <label class="cell-sm-4">User Name</label>
+                    <div class="cell-sm-8">
+                        <input type="text" name="userName" value="<%=body.userName%>">
+                    </div>
+                </div>
+                <div class="row mb-2">
                     <label class="cell-sm-4">Security Group</label>
                     <div class="cell-sm-8">
                         <input type="text" name="securityGroupId" value="<%=body.securityGroupId%>">
@@ -47,6 +53,7 @@
                     <thead>
                         <tr>
                             <th data-sortable="true">User Login Id</th>
+                            <th data-sortable="true">User Name</th>
                             <th data-sortable="true">Security Groups</th>
                             <th data-sortable="true">Permissions</th>
                         </tr>
@@ -54,9 +61,10 @@
                     <tbody>
                         <% for(let user of users) { %>
                             <tr>
-                                <td><a href="<%=baseUrl%>/user/view/<%=user.user_login_id%>"><%=user.user_login_id%></a></td>
-                                <td><%=user.security_groups%></td>
-                                <td><%=user.permissions%></td>
+                                <td><a href="<%=baseUrl%>/user/view/<%=user.userLoginId%>"><%=user.userLoginId%></a></td>
+                                <td><%=user.userName || "-"%></a></td>
+                                <td><%=user.securityGroups || 0%></td>
+                                <td><%=user.permissions || 0%></td>
                             </tr>
                         <% } %>
                     </tbody>

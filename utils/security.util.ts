@@ -1,10 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
 import sha256 from 'sha256';
 import { BaseConfig } from '../config/base.config';
-import { UserLogin } from '../core/entity/user_login';
 import { ExpressUtil } from './express.util';
-import { UserLoginSecurityGroupPermission } from '../core/view-entity/user_login.security_group_permission';
 import { ServiceUtil } from './service.util';
+import { ConditionBuilder } from '../core/engine/entity/condition.builder';
+import { EntityQuery } from '../core/engine/entity/entity.query';
+import { GenericValue } from '../core/engine/entity/generic.value';
+import { EntityDynamicQuery } from '../core/engine/entity/entity.dynamic.query';
 
 export abstract class SecurityUtil {
     public static hash(input: string): string {
@@ -13,31 +15,6 @@ export abstract class SecurityUtil {
 
     public static hashPassword(password: string): string {
         return this.hash(password + BaseConfig.passwordSalt);
-    }
-
-    public static socialLogin(req:Request, res: Response, userData: GenericObject) {
-        return new Promise((resolve, reject) => {
-            let conditions = [];
-            let inserts = [];
-            if (userData.google_id) { conditions.push("google_id=?"); inserts.push(userData.google_id); }
-            if (userData.discord_id) { conditions.push("discord_id=?"); inserts.push(userData.discord_id); }
-            UserLogin.findAll(`${conditions.join(" AND ")}`, inserts)
-            .then(users => {
-                if(users.length) {
-                    req.session!.userLoginId = users[0].userLoginId;
-                    req.session!.userName = users[0].name;
-                    resolve();
-                } else {
-                    let userLogin = UserLogin.create();
-                    userLogin.setData(userData);
-                    userLogin.store().then(user => {
-                        req.session!.userLoginId = userData.user_login_id;
-                        req.session!.userName = userData.name;
-                        resolve();
-                    }).catch(reject);
-                }
-            }).catch(reject);
-        })
     }
 
     public static userLoggedIn(req: Request): boolean {
@@ -62,8 +39,8 @@ export abstract class SecurityUtil {
         })
     }
 
-    public static userHasPermission(user: UserLogin, permissionId: string) {
-        return SecurityUtil.userLoginHasPermission(user.userLoginId, permissionId);
+    public static userHasPermission(user: GenericValue, permissionId: string) {
+        return SecurityUtil.userLoginHasPermission(user.get("userLoginId"), permissionId);
     }
 
     public static userLoginHasPermission(userLoginId: string, permissionId: string) {
@@ -103,5 +80,44 @@ export abstract class SecurityUtil {
                 ExpressUtil.renderGenericError(req, res, err);
             });
         }
+    }
+
+    public static socialLogin(req:Request, res: Response, userData: GenericObject) {
+        console.log(userData)
+        return new Promise((resolve, reject) => {
+            const ecb = ConditionBuilder.create()
+                .eq("OA.provider", userData.provider)
+                .eq("OA.id", userData.socialId)
+            
+            EntityDynamicQuery.select("UL.*", "OA.*")
+                .from("UL", "UserLogin")
+                .innerJoin("OA", "Oauth", "userLoginId", "UL.userLoginId")
+                .where(ecb).queryFirst()
+            .then(user => {
+                console.log(user)
+                if(user) {
+                    req.session!.userLoginId = user.get("userLoginId");
+                    req.session!.userName = user.get("userName");
+                    resolve();
+                } else {
+                    const userLogin = new GenericValue("UserLogin", {
+                        fullName: userData.name,
+                        picture: userData.picture
+                    })
+                    userLogin.store().then(userLoginId => {
+                        const oauth = new GenericValue("Oauth", {
+                            userLoginId: userLoginId,
+                            provider: userData.provider,
+                            id: userData.socialId
+                        })
+                        oauth.store().then(() => {
+                            req.session!.userLoginId = userLoginId;
+                            req.session!.userName = userData.name;
+                            resolve();
+                        }).catch(reject);
+                    }).catch(reject);
+                }
+            }).catch(reject);
+        })
     }
 }

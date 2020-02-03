@@ -1,8 +1,12 @@
-import { DebugUtil } from '../../utils/debug.util';
-import { BaseUtil } from '../../utils/base.util';
-import { BaseConfig } from '../../config/base.config';
-import { CacheEngine } from './cache.engine';
-import { Connection, createConnection } from "mysql2";
+import { DebugUtil } from '../../../utils/debug.util';
+import { BaseUtil } from '../../../utils/base.util';
+import { BaseConfig } from '../../../config/base.config';
+import { CacheEngine } from '../cache.engine';
+import { Connection, createConnection } from "mysql";
+import { CaseUtil } from '../../../utils/case.util';
+import { GenericValue } from './generic.value';
+import { TypeEngine } from '../type.engine';
+import { DynamicEntity } from './dynamic.entity';
 
 export class EntityEngine {
     private static readonly moduleName: string = "EntityEngine";
@@ -12,6 +16,7 @@ export class EntityEngine {
     private static databaseFormatMode: number = 0;
     private static databaseConfig: DatabaseConnection;
     private static entityDefinitions: Array<EntityDefinition>;
+    private static publicEntityDefinitions: Array<EntityDefinition>;
     private static initCallback: Function;
     private static instance: EntityEngine;
     
@@ -54,7 +59,25 @@ export class EntityEngine {
     public static initSettings(databaseConfig: DatabaseConnection, entityDefinitions: Array<EntityDefinition>,
             databaseFormatMode: number, initCallback: Function) {
         EntityEngine.databaseConfig = databaseConfig;
+        for (const entity of entityDefinitions) {
+            if (entity.type !== "VIEW") {
+                entity.fields = entity.fields.concat(EntityEngine.timestampFields);
+            }
+        }
         EntityEngine.entityDefinitions = entityDefinitions;
+        EntityEngine.publicEntityDefinitions = entityDefinitions.map(entity => {
+            return {
+                "name": CaseUtil.snakeToPascal(entity.name),
+                "type": entity.type,
+                "fields": entity.fields.map(field => {
+                    return {
+                        "name": CaseUtil.snakeToCamel(field.name),
+                        "type": field.type,
+                        "primaryKey": field.primaryKey === true
+                    }
+                })
+            }
+        })
         EntityEngine.initCallback = initCallback;
         EntityEngine.databaseFormatMode = databaseFormatMode;
         EntityEngine.getInstance();
@@ -65,6 +88,10 @@ export class EntityEngine {
             EntityEngine.instance = new EntityEngine();
         }
         return EntityEngine.instance;
+    }
+
+    private static getConnection() {
+        return this.getInstance().mysqlConnection;
     }
 
     private handleDisconnect(): void {
@@ -96,11 +123,24 @@ export class EntityEngine {
         });
     }
 
+    public static getEntityNames(): Array<string> {
+        return EntityEngine.entityDefinitions.map(entity => CaseUtil.snakeToPascal(entity.name));
+    }
+
+    public static getPublicEntityDefinitions(): Array<EntityDefinition> {
+        return EntityEngine.publicEntityDefinitions;
+    }
+
     public static getEntityDefinitions(): Array<EntityDefinition> {
         return EntityEngine.entityDefinitions;
     }
 
+    public static getPublicEntityDefinition(entityName: string): EntityDefinition | undefined {
+        return this.getPublicEntityDefinitions().find(x => x.name == entityName);
+    }
+
     public static getEntityDefinition(entityName: string): EntityDefinition | undefined {
+        entityName = CaseUtil.pascalToSnake(entityName);
         return this.getEntityDefinitions().find(x => x.name == entityName);
     }
 
@@ -127,7 +167,7 @@ export class EntityEngine {
         })
     }
 
-    private dropTables(): Promise<Function> {
+    private dropTables(): Promise<any> {
         return new Promise((resolve: any, reject: any) => {
             let droppedTables: Array<string> = [];
             let tableDrops: Array<Function> = [];
@@ -152,7 +192,7 @@ export class EntityEngine {
                                 }
 
                                 droppedTables.push(entity.name);
-                                EntityEngine.transactPromise(`drop table if exists ${entity.name}`).then(resolve).catch(reject);
+                                EntityEngine.transactPromise(`drop ${entity.type} if exists ${entity.name}`).then(resolve).catch(reject);
                             }).catch(reject);
                         });
                     });
@@ -220,9 +260,6 @@ export class EntityEngine {
                 for (let field of entity.fields) {
                     this.getFieldDefinition(field, primaryKeys, uniqueKeys, fields);
                 }
-                for (let timestampField of EntityEngine.timestampFields) {
-                    this.getFieldDefinition(timestampField, primaryKeys, uniqueKeys, fields);
-                }
                 let primaryKeysDef = primaryKeys.length ? `primary key (${primaryKeys.join(", ")})` : "";
                 let constraints = [fields.length ? `${fields.join(", ")}` : "", primaryKeysDef].concat(uniqueKeys);
                 if (entity.foreignKeys) {
@@ -234,13 +271,17 @@ export class EntityEngine {
                             on update ${fk.onUpdate}`);
                     }
                 }
-                resolve(`create table if not exists ${entity.name} (${constraints.filter(x => x.trim() !== "").join(", ")})`);
+                if (entity.type === "TABLE") {
+                    resolve(`create table if not exists ${entity.name} (${constraints.filter(x => x.trim() !== "").join(", ")})`);
+                } else {
+                    resolve(`create view ${entity.name} as ${entity.viewDefinition}`);
+                }
             }).catch(reject);
         })
     }
 
     private getFieldDefinition(field: FieldDefinition, primaryKeys: Array<string>, uniqueKeys: Array<string>, fields: Array<string>) {
-        let nullType = field.notNull ? "not null" : "null";
+        let nullType = field.notNull ? "not null" : "";
         let autoIncrement = field.autoIncrement ? "auto_increment" : "";
         let defaultExpression = field.default ? "DEFAULT " + field.default : "";
         if (field.primaryKey === true) {
@@ -258,7 +299,7 @@ export class EntityEngine {
             let tableExtensions: Array<Function> = [];
             if (EntityEngine.entityDefinitions) {
                 for (let entity of EntityEngine.entityDefinitions) {
-                    if (entity.ignore) {
+                    if (entity.ignore || entity.type === "VIEW") {
                         DebugUtil.logInfo(`Ignoring entity '${entity.name}'`, EntityEngine.moduleName);
                         continue;
                     }
@@ -340,14 +381,14 @@ export class EntityEngine {
         return `add column ${field.name} ${field.type} ${nullType} ${defaultExpression || autoIncrement}`;
     }
 
-    public static transactPromise(query: string = '', inserts: Array<any> = [], cache: boolean = false): Promise<Function> {
+    public static transactPromise(query: string = '', inserts: Array<any> = [], cache: boolean = false, applyCase: boolean = true): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.transact(query, inserts, reject, resolve, cache);
+            this.transact(query, inserts, reject, resolve, cache, applyCase);
         })
     }
 
     public static transact(query: string = '', inserts: Array<any> = [], reject: Function = DebugUtil.logInfo,
-        resolve: Function = DebugUtil.logError, cache: boolean = false): void {
+        resolve: Function = DebugUtil.logError, cache: boolean = false, applyCase: boolean = true): void {
 
         if (!EntityEngine.getInstance().initialized) {
             return reject('Entity Engine not initialized');
@@ -363,7 +404,7 @@ export class EntityEngine {
             } else {
                 let func: Function = EntityEngine.getInstance().query;
                 if (cache) func = EntityEngine.getInstance().cacheQuery;
-                func.apply(EntityEngine.getInstance(), [sql, inserts]).then((data: any) => {
+                func.apply(EntityEngine.getInstance(), [sql, inserts]).then((result: any) => {
                     EntityEngine.getInstance().mysqlConnection.commit((err: any) => {
                         if (err) {
                             DebugUtil.logError(err, 'EntityEngine.TransactCommit');
@@ -372,10 +413,18 @@ export class EntityEngine {
                                 reject(err);
                             });
                         } else {
-                            if (!data.cached) {
+                            if (!result.cached) {
                                 DebugUtil.logTiming(`Ran query ${logSql}`, queryStart, undefined, 'EntityEngine.Transact');
                             }
-                            resolve(data.data);
+                            if (applyCase) {
+                                if (result.data instanceof Array) {
+                                    resolve(result.data.map((obj: any) => EntityEngine.resultsCaseChange(obj)));
+                                } else {
+                                    resolve(EntityEngine.resultsCaseChange(result.data));
+                                }
+                            } else {
+                                resolve(result.data);
+                            }
                         }
                     });
                 }).catch((err: any) => {
@@ -386,6 +435,15 @@ export class EntityEngine {
                 });
             }
         });
+    }
+
+    private static resultsCaseChange(object: any): GenericObject {
+        const output: GenericObject = {};
+        const converter = CaseUtil.from(CaseUtil.SNAKE).to(CaseUtil.CAMEL);
+        for (const key of Object.keys(object)) {
+            output[converter.convert(key)] = object[key];
+        }
+        return output;
     }
 
     private cacheQuery(sql: string, inserts: Array<any> = []): Promise<any> {
@@ -400,9 +458,9 @@ export class EntityEngine {
                 });
             }
             this.query(sql).then(value => {
-                CacheEngine.store("entity", cacheName, value, parameterSubKey);
+                CacheEngine.store("entity", cacheName, value.data, parameterSubKey);
                 resolve({
-                    data: value,
+                    data: value.data,
                     cached: false
                 });
             }).catch(reject);
@@ -411,7 +469,7 @@ export class EntityEngine {
 
     private query(sql: string, inserts?: Array<any>): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.mysqlConnection.query(sql, (err: any, data: any) => {
+            this.mysqlConnection.query(sql, inserts, (err: any, data: any) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -423,4 +481,190 @@ export class EntityEngine {
             });
         });
     }
+
+    public static validateField(entity: string | DynamicEntity, _field: string): FieldDefinition {
+        const field = EntityEngine.parseField(_field);
+        if (entity instanceof DynamicEntity) {
+            const dynamicDef = entity.fieldExists(_field);
+            if (dynamicDef) {
+                const entityDef = this.getPublicEntityDefinition(entity.getEntity(dynamicDef.alias || entity.getBaseAlias()).def.name);
+                if (!entityDef) {
+                    throw new Error(`Could not find the entity definition for field '${_field}'`);
+                }
+                const definition = entityDef.fields.find(f => f.name === field.name);
+                if (!definition) {
+                    throw new Error(`Could not find the field definition for '${_field}' on '${entityDef.name}' entity.`);
+                }
+                return definition;
+            } else {
+                throw new Error(`Could not find the definition for the field '${_field}'`);
+            }
+        } else {
+            return this.validateFields(entity, [field.name])[0];
+        }
+    }
+
+    public static validateFieldValuePair(entity: string | DynamicEntity, field: string, value: any): void;
+    public static validateFieldValuePair(entity: string | DynamicEntity, field: string, value: any, nullCheck: boolean): void;
+    public static validateFieldValuePair(entity: string | DynamicEntity, field: string, value: any, nullCheck: boolean = false): void {
+        let fieldDefinition = EntityEngine.validateField(entity, field);
+        if (fieldDefinition) {
+            TypeEngine.convert(value, fieldDefinition.type, nullCheck);
+        } else {
+            throw new Error(`Could not find the definition for the field '${field}'`);
+        }
+    }
+
+    public static validateFields(entityName: string, fields: Array<string>): Array<FieldDefinition> {
+        entityName = CaseUtil.pascalToSnake(entityName);
+        const entity = this.getEntityDefinition(entityName);
+        const definitions: Array<FieldDefinition> = [];
+        if (entity) {
+            for (const field of fields) {
+                const fieldName = CaseUtil.camelToSnake(field);
+                const fieldDefinition = entity.fields.find(f => f.name === fieldName);
+                if (!fieldDefinition) {
+                    throw new Error(`Field '${fieldName}' of entity '${entityName}' is not defined.`);
+                } else {
+                    definitions.push(fieldDefinition);
+                }
+            }
+        } else {
+            throw new Error(`Entity '${entityName}' is not defined.`);
+        }
+        return definitions;
+    }
+
+    public static makeCondition(conditions: Array<Condition>): string;
+    public static makeCondition(conditions: Array<Condition>, ejo: JoinOperator): string;
+    public static makeCondition(conditions: Array<Condition>, ejo: JoinOperator = "AND"): string {
+        const final: Array<string> = [];
+        for (const cond of conditions) {
+            let i = 0;
+            final.push(cond.clause.replace(/\?/g, () => {
+                return this.getConnection().escape(cond.inserts[i++]);
+            }))
+        }
+        return final.join(` ${ejo} `);
+    }
+
+    public static insert(values: Array<GenericValue>): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const statements: Array<SQLStatement> = values.map(EntityEngine.makeInsertStatement);
+            const inserts: Array<any> = statements.map(s => s.inserts);
+            EntityEngine.transact(statements.map(s => s.sql).join(";"), [inserts], reject, (results: any) => {
+                if (results instanceof Array) {
+                    resolve(results.map(res => res.insertid));
+                } else {
+                    resolve(results.insertid);
+                }
+            });
+        })
+    }
+
+    public static update(values: Array<GenericValue>): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const statements: Array<SQLStatement> = values.map(EntityEngine.makeUpdateStatement);
+            const inserts: Array<any> = statements.map(s => s.inserts);
+            EntityEngine.transact(statements.map(s => s.sql).join(";"), [].concat.apply([], inserts), reject, (results: any) => {
+                if (results instanceof Array) {
+                    resolve(results.map(res => res.affectedrows));
+                } else {
+                    resolve(results.affectedrows);
+                }
+            });
+        })
+    }
+
+    public static parseField(_field: string): DynamicDefinition {
+        const parts = _field.trim().split(".").filter(x => x.trim() !== "");
+        let alias = undefined;
+        let field = "";
+        if (parts.length === 1) {
+            field = parts[0];
+        } else if (parts.length === 2) {
+            alias = parts[0];
+            field = parts[1];
+        } else {
+            throw new Error(`'${_field}' is not a valid field definition.`);
+        }
+
+        return { alias: alias, name: field };
+    }
+
+    public static parseOrderBy(_field: string): OrderByField {
+        const field = this.parseField(_field);
+        const orderBy: OrderByField = {
+            name: field.name,
+            asc: true
+        }
+        if (field.alias) orderBy.alias = field.alias;
+        const parts = orderBy.name.split(" ").filter(f => f.trim() !== "");
+        if (parts.length === 2) {
+            orderBy.name = parts[0];
+            const modifIndex = ["asc", "desc"].indexOf(parts[1].toLowerCase());
+            if (modifIndex > -1) {
+                orderBy.asc = modifIndex === 0;
+            } else {
+                throw new Error(`Order by modifier '${parts[0]}' for field '${_field}' not supported`);
+            }
+        } else if(parts.length === 1) {
+            if (orderBy.name.substr(0, 1) === "-") {
+                orderBy.asc = false;
+                orderBy.name = orderBy.name.substr(1);
+            }
+        } else {
+            throw new Error(`Field '${_field}' not supported for order by clause`);
+        }
+        return orderBy;
+    }
+
+    private static makeInsertStatement(value: GenericValue): SQLStatement {
+        const entity = value.getEntity();
+        if (entity instanceof DynamicEntity) {
+            throw new Error(`Cannot perform an insert statement on a dynamic entity ${BaseUtil.stringify(value)}`);
+        }
+        const entityDef = EntityEngine.getEntityDefinition(entity);
+        if (!entityDef) {
+            throw new Error(`Entity '${entity}' not defined.`);
+        }
+        const data = value.getData();
+        const sql = `insert into ${entityDef.name} (${Object.keys(data).map(CaseUtil.camelToSnake).join(",")}) values ?`;
+        return { sql: sql, inserts: Object.values(data)}
+    }
+
+    private static makeUpdateStatement(value: GenericValue): SQLStatement {
+        const entity = value.getEntity();
+        if (entity instanceof DynamicEntity) {
+            throw new Error(`Cannot perform an update statement on a dynamic entity ${BaseUtil.stringify(value)}`);
+        }
+        const entityDef = EntityEngine.getEntityDefinition(entity);
+        if (!entityDef) {
+            throw new Error(`Entity '${entity}' not defined.`);
+        }
+        const data = value.getData();
+        delete data.createdStamp;
+        delete data.lastUpdatedStamp;
+        const setData: GenericObject = {};
+        const pkData: GenericObject = {};
+        for (const key of Object.keys(data)) {
+            const sqlKey = CaseUtil.camelToSnake(key);
+            const fieldDef = entityDef.fields.find(f => f.name === sqlKey);
+            if (!fieldDef) {
+                throw new Error(`Field '${key}' is not valid for entity '${entity}'`);
+            }
+            if (!fieldDef.primaryKey) {
+                setData[sqlKey] = data[key];
+            } else {
+                pkData[sqlKey] = data[key];
+            }
+        }
+        const sql = `update ${entityDef.name} set ? where ?`;
+        return { sql: sql, inserts: [setData, pkData] }
+    }
+}
+
+type SQLStatement = {
+    sql: string,
+    inserts: Array<any>
 }

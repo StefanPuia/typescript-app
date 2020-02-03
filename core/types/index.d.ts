@@ -23,9 +23,11 @@ type SocialAuth = {
 
 type EntityDefinition = {
     name: string,
+    type: "VIEW" | "TABLE",
     ignore?: boolean,
     foreignKeys?: Array<ForeignKeyDefinition>,
-    fields: Array<FieldDefinition>
+    fields: Array<FieldDefinition>,
+    viewDefinition?: string
 }
 
 type FieldDefinition = {
@@ -82,4 +84,38 @@ type ViewEntityJoinFieldDefinition = {
 type ViewEntityJoinFieldGroup = {
     joinFields: Array<ViewEntityJoinFieldDefinition>,
     condition: "AND" | "OR"
+}
+
+type Condition = {
+    clause: string,
+    inserts: Array<any>
+}
+
+type JoinOperator = "AND" | "OR";
+
+type DynamicDefinition = {
+    alias: string | undefined,
+    name: string
+}
+
+type JoinCondition = {
+    field: string,
+    relField?: string,
+    value?: any
+}
+
+type EntityJoin = {
+    type: "BASE" | "INNER" | "OUTER",
+    def: DynamicDefinition,
+    condition: Array<JoinCondition>
+}
+
+type EntityJoinStore = {
+    [alias: string]: EntityJoin
+}
+
+type OrderByField = {
+    alias?: string,
+    name: string,
+    asc: boolean
 }
