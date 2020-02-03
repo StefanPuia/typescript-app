@@ -1,4 +1,0 @@
-[submodule "core/types/mysql2"]
-    path = core/types/mysql2
-    url = https://github.com/types/mysql2.git
-	branch = master
