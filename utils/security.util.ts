@@ -97,7 +97,7 @@ export abstract class SecurityUtil {
                 console.log(user)
                 if(user) {
                     req.session!.userLoginId = user.get("userLoginId");
-                    req.session!.userName = user.get("userName");
+                    req.session!.userName = user.get("fullName") || user.get("userName");
                     resolve();
                 } else {
                     const userLogin = new GenericValue("UserLogin", {

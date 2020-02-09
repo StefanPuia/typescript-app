@@ -31,7 +31,7 @@ loginController.post("/login", (req: Request, res: Response) => {
         if (user) {
             if (req.session) {
                 req.session.userLoginId = user.get("userLoginId");
-                req.session.userName = user.get("userName");
+                req.session.userName = user.get("fullName") || user.get("userName");
             }
             res.redirect(req.baseUrl);
         } else {

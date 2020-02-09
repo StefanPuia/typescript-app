@@ -85,6 +85,7 @@ export abstract class RenderUtil {
         context.baseUrl = req.baseUrl;
         context.uiLabel = LabelUtil.get;
         context.stringify = BaseUtil.stringify;
+        context.hostName = req.headers.host;
 
         context.context = context;
         return new Promise((resolve: any, reject: any) => {
