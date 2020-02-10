@@ -100,7 +100,7 @@ export abstract class WSController {
     protected abstract route: string;
 
     public init() {
-        WSEngine.register(this.getRoute(), this, this.onConnect);
+        WSEngine.register("/ws" + this.getRoute(), this, this.onConnect);
         WSEngine.on(this.getRoute(), "close", this.onClose);
         WSEngine.on(this.getRoute(), "upgrade", this.onUpgrade);
         WSEngine.on(this.getRoute(), "message", this.onMessage);
