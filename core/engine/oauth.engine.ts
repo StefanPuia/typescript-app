@@ -1,4 +1,5 @@
 import { BaseUtil } from '../../utils/base.util';
+import { BaseConfig } from '../../config/base.config';
 import fetch from "node-fetch";
 
 export abstract class OAuthEngine {
@@ -7,7 +8,7 @@ export abstract class OAuthEngine {
     protected abstract clientID: string;
     protected abstract clientSecret: string;
     protected abstract redirectURL: string;
-    public static redirectUrlPrefix: string = "http://teachtogether.tk/";
+    public static redirectUrlPrefix: string = BaseConfig.oauthRedirectPrefix;
     protected abstract identifyURL: string;
     protected abstract scope: string;
 
