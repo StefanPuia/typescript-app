@@ -54,6 +54,13 @@ export class GenericValue {
         return EntityEngine.update([this]);
     }
 
+    public delete(): Promise<any> {
+        if (this.entity instanceof DynamicEntity) {
+            throw new Error(`Delete method not available for dynamic entities.`);
+        }
+        return EntityEngine.delete([this]);
+    }
+
     public store(): Promise<any> {
         if (this.entity instanceof DynamicEntity) {
             throw new Error(`Store method not available for dynamic entities.`);

@@ -38,7 +38,7 @@ export class WSEngine {
         DebugUtil.logInfo(`Registering WebSocket route '${route}'`, "WSEngine");
         const engine = WSEngine.getInstance();
         if (!engine.routes[route]) {
-            const socket = engine.app.ws(route, (ws: WebSocket, req: Request) => {
+            const socket = engine.app.ws("/ws" + route, (ws: WebSocket, req: Request) => {
                 for (const key of Object.values(WSEngine.EVENT)) {
                     ws.on(key, engine.callback(route, key, callee, ws, req));
                 }
@@ -100,7 +100,7 @@ export abstract class WSController {
     protected abstract route: string;
 
     public init() {
-        WSEngine.register("/ws" + this.getRoute(), this, this.onConnect);
+        WSEngine.register(this.getRoute(), this, this.onConnect);
         WSEngine.on(this.getRoute(), "close", this.onClose);
         WSEngine.on(this.getRoute(), "upgrade", this.onUpgrade);
         WSEngine.on(this.getRoute(), "message", this.onMessage);

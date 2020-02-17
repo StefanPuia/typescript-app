@@ -2,6 +2,7 @@
 
 <div class="container">
     <form method="POST">
+        <input name="redirect" value="<%=context.redirect || ""%>" type="hidden"/>
         <div class="grid">
             <div class="row">
                 <% if(typeof error !== "undefined") { %>

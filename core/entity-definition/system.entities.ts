@@ -19,11 +19,15 @@ const SystemEntities: Array<EntityDefinition> = [{
     "name": "system_property",
     "type": "TABLE",
     "fields": [{
-        "name": "system_property_id",
+        "name": "system_resource_id",
         "type": EntityEngine.DATA_TYPE.ID_LONG,
         "primaryKey": true
     }, {
-        "name": "value",
+        "name": "system_property_id",
+        "type": EntityEngine.DATA_TYPE.ID_LONG,
+        "primaryKey": true
+    },{
+        "name": "system_property_value",
         "type": EntityEngine.DATA_TYPE.DESCRIPTION
     }]
 }, {

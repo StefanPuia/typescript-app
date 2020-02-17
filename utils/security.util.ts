@@ -25,7 +25,7 @@ export abstract class SecurityUtil {
         if (SecurityUtil.userLoggedIn(req)) {
             next();
         } else {
-            res.redirect(req.baseUrl + "/login");
+            res.redirect(req.baseUrl + "/login?r=" + encodeURIComponent(req.baseUrl + req.url));
         }
     }
 

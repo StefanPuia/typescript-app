@@ -135,13 +135,17 @@ export class EntityEngine {
         return EntityEngine.entityDefinitions;
     }
 
-    public static getPublicEntityDefinition(entityName: string): EntityDefinition | undefined {
-        return this.getPublicEntityDefinitions().find(x => x.name == entityName);
+    public static getPublicEntityDefinition(entityName: string): EntityDefinition {
+        const entity = this.getPublicEntityDefinitions().find(x => x.name == entityName);
+        if (entity) return entity;
+        throw new Error(`Entity '${entityName}' not defined.`);
     }
 
-    public static getEntityDefinition(entityName: string): EntityDefinition | undefined {
-        entityName = CaseUtil.pascalToSnake(entityName);
-        return this.getEntityDefinitions().find(x => x.name == entityName);
+    public static getEntityDefinition(_entityName: string): EntityDefinition {
+        const entityName = CaseUtil.pascalToSnake(_entityName);
+        const entity = this.getEntityDefinitions().find(x => x.name == entityName);
+        if (entity) return entity;
+        throw new Error(`Entity '${_entityName}' not defined.`);
     }
 
     private reformatTables() {
@@ -576,6 +580,20 @@ export class EntityEngine {
         })
     }
 
+    public static delete(values: Array<GenericValue>): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const statements: Array<SQLStatement> = values.map(EntityEngine.makeRemoveStatement);
+            const inserts: Array<any> = statements.map(s => s.inserts);
+            EntityEngine.transact(statements.map(s => s.sql).join(";"), [].concat.apply([], inserts), reject, (results: any) => {
+                if (results instanceof Array) {
+                    resolve(results.map(res => res.affectedrows));
+                } else {
+                    resolve(results.affectedrows);
+                }
+            });
+        })
+    }
+
     public static parseField(_field: string): DynamicDefinition {
         const parts = _field.trim().split(".").filter(x => x.trim() !== "");
         let alias = undefined;
@@ -662,9 +680,36 @@ export class EntityEngine {
         const sql = `update ${entityDef.name} set ? where ?`;
         return { sql: sql, inserts: [setData, pkData] }
     }
+
+    private static makeRemoveStatement(value: GenericValue): SQLStatement {
+        const entity = value.getEntity();
+        if (entity instanceof DynamicEntity) {
+            throw new Error(`Cannot perform an delete statement on a dynamic entity ${BaseUtil.stringify(value)}`);
+        }
+        const entityDef = EntityEngine.getEntityDefinition(entity);
+        if (!entityDef) {
+            throw new Error(`Entity '${entity}' not defined.`);
+        }
+        const data = value.getData();
+        delete data.createdStamp;
+        delete data.lastUpdatedStamp;
+        const pkData: GenericObject = {};
+        for (const key of Object.keys(data)) {
+            const sqlKey = CaseUtil.camelToSnake(key);
+            const fieldDef = entityDef.fields.find(f => f.name === sqlKey);
+            if (!fieldDef) {
+                throw new Error(`Field '${key}' is not valid for entity '${entity}'`);
+            }
+            if (fieldDef.primaryKey) {
+                pkData[sqlKey] = data[key];
+            }
+        }
+        const sql = `delete from ${entityDef.name} where ${Object.keys(pkData).map(key => `${key} = ?`).join(" and ")}`;
+        return { sql: sql, inserts: Object.values(pkData) }
+    }
 }
 
 type SQLStatement = {
     sql: string,
-    inserts: Array<any>
+    inserts: Array<any> | GenericObject
 }

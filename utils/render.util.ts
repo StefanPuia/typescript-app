@@ -4,10 +4,12 @@ import path from 'path';
 import { DebugUtil } from './debug.util';
 import { LabelUtil } from './label.util';
 import { BaseUtil } from './base.util';
+import { EntityQuery } from '../core/engine/entity/entity.query';
 
 export abstract class RenderUtil {
     private static readonly moduleName: string = 'RenderUtil';
     private static readonly staticError: string = RenderUtil.getDefaultView('static_error');
+    private static additionalContext: GenericObject;
 
     public static getDefaultView(viewName: string) {
         return path.join(__dirname, '../views/' + viewName + '.ejs');
@@ -18,20 +20,24 @@ export abstract class RenderUtil {
         afterRender: RenderModifier = this.blankRenderFunction): Promise<Function> {
 
         return new Promise((resolve: any, reject: any) => {
-            const timeStart = new Date().getTime();
-            this.renderPromise(viewName, req, res, context, status, beforeRender, afterRender)
-            .then(html => {
-                res.send(html).end(() => {
-                    DebugUtil.logTiming(`Rendered ${viewName}`, timeStart, undefined, this.moduleName);
-                    resolve(html);
+            if (!res.headersSent) {
+                const timeStart = new Date().getTime();
+                this.renderPromise(viewName, req, res, context, status, beforeRender, afterRender)
+                .then(html => {
+                    res.send(html).end(() => {
+                        DebugUtil.logTiming(`Rendered ${viewName}`, timeStart, undefined, this.moduleName);
+                        resolve(html);
+                    });
+                }).catch(error => {
+                    DebugUtil.logError(`In '${viewName}': ${error}`, this.moduleName);
+                    res.status(500).render(RenderUtil.staticError, {
+                        error: error
+                    });
+                    reject(error);
                 });
-            }).catch(error => {
-                DebugUtil.logError(`In '${viewName}': ${error}`, this.moduleName);
-                res.status(500).render(RenderUtil.staticError, {
-                    error: error
-                });
-                reject(error);
-            });
+            } else {
+                resolve("");
+            }
         });
     }
 
@@ -80,12 +86,15 @@ export abstract class RenderUtil {
 
     private static renderPromise(viewName: string, req: Request, res: Response, context: GenericObject, 
             status: number, beforeRender: RenderModifier, afterRender: RenderModifier): Promise<Function> {
-        context.defaultView = RenderUtil.getDefaultView;
-        context.dateFormat = dateFormat;
-        context.baseUrl = req.baseUrl;
-        context.uiLabel = LabelUtil.get;
-        context.stringify = BaseUtil.stringify;
-        context.hostName = req.headers.host;
+        context = Object.assign(context, RenderUtil.additionalContext);
+        context = Object.assign(context, {
+            "defaultView": RenderUtil.getDefaultView,
+            "dateFormat": dateFormat,
+            "baseUrl": req.baseUrl,
+            "uiLabel": LabelUtil.get,
+            "stringify": BaseUtil.stringify,
+            "hostName": req.headers.host
+        });
 
         context.context = context;
         return new Promise((resolve: any, reject: any) => {
@@ -105,7 +114,25 @@ export abstract class RenderUtil {
             }).catch(reject);
         });
     }
+
+    public static async loadAdditionalContext() {
+        try {
+            const context: GenericObject = {};
+            const systemProperties = await EntityQuery.from("SystemProperty")
+                .where({"systemResourceId": "additionalContext"}).queryList();
+            for (const prop of systemProperties) {
+                context[prop.get("systemPropertyId")] = prop.get("systemPropertyValue");
+            }
+            RenderUtil.additionalContext = context;
+            DebugUtil.logInfo("Additional context loaded.", "RenderUtil");
+        } catch (err) {
+            DebugUtil.logError(err);
+            setTimeout(RenderUtil.loadAdditionalContext, 10000);
+        }
+    }
 }
+
+setTimeout(RenderUtil.loadAdditionalContext, 10000);
 
 export interface RenderModifier {
     (req: Request, res: Response, context: GenericObject): Promise<any> | void

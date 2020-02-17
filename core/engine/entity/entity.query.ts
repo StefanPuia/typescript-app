@@ -1,6 +1,7 @@
 import { EntityEngine } from './entity.engine';
 import { GenericValue } from './generic.value';
 import { ConditionBuilder } from './condition.builder';
+import { CaseUtil } from '../../../utils/case.util';
 
 export class EntityQuery {
     private entityName: string;
@@ -28,7 +29,7 @@ export class EntityQuery {
 
     public select(...fields: Array<string>): EntityQuery {
         EntityEngine.validateFields(this.entityName, fields);
-        this.fields = fields;
+        this.fields = fields.map(CaseUtil.camelToSnake);
         return this;
     }
 
@@ -72,7 +73,9 @@ export class EntityQuery {
         return this;
     }
 
-    public cache(cache: boolean): EntityQuery {
+    public cache(): EntityQuery;
+    public cache(cache: boolean): EntityQuery;
+    public cache(cache: boolean = true): EntityQuery {
         this.doCache = cache;
         return this;
     }
@@ -117,7 +120,7 @@ export class EntityQuery {
             query += `where ${this.condition} `;
         }
         if (this.orderByFields.length) {
-            query += `order by ${this.orderByFields.map(
+            query += `order by ${this.orderByFields.map(CaseUtil.camelToSnake).map(
                 field => field.substr(0, 1) === "-" ? `${field.substr(1)} DESC` : field).join(", ")} `;
         }
         return query;
