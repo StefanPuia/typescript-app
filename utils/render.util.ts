@@ -29,7 +29,7 @@ export abstract class RenderUtil {
                         resolve(html);
                     });
                 }).catch(error => {
-                    DebugUtil.logError(`In '${viewName}': ${error}`, this.moduleName);
+                    DebugUtil.logError(error, `${this.moduleName}.${viewName}`);
                     res.status(500).render(RenderUtil.staticError, {
                         error: error
                     });
@@ -55,7 +55,7 @@ export abstract class RenderUtil {
             afterRender: RenderModifier = this.blankRenderFunction): void {
         this.render(viewName, req, res, context, status, beforeRender, afterRender)
         .catch(err => {
-            DebugUtil.logError(`In '${viewName}': ${err}`, this.moduleName);
+            DebugUtil.logError(err, `${this.moduleName}.${viewName}`);
         })
     }
 

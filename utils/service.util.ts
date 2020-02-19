@@ -7,15 +7,17 @@ export abstract class ServiceUtil {
     public static runSync(serviceName: string): Promise<any>;
     public static runSync(serviceName: string, parameters: GenericObject): Promise<any>;
     public static runSync(serviceName: string, parameters: GenericObject, cache: boolean): Promise<any>;
-    public static runSync(serviceName: string, parameters: GenericObject = {}, cache: boolean = false): Promise<any> {
-        return ServiceEngine.run(serviceName, parameters, cache);
+    public static runSync(serviceName: string, parameters: GenericObject, cache: boolean, suppressLogging: boolean): Promise<any>;
+    public static runSync(serviceName: string, parameters: GenericObject = {}, cache: boolean = false, suppressLogging: boolean = false): Promise<any> {
+        return ServiceEngine.run(serviceName, parameters, cache, suppressLogging);
     }
 
     public static runAsync(serviceName: string): void;
     public static runAsync(serviceName: string, parameters: GenericObject): void;
     public static runAsync(serviceName: string, parameters: GenericObject, cache: boolean): void;
-    public static runAsync(serviceName: string, parameters: GenericObject = {}, cache: boolean = false): void {
-        ServiceEngine.run(serviceName, parameters, cache)
+    public static runAsync(serviceName: string, parameters: GenericObject, cache: boolean, suppressLogging: boolean): void;
+    public static runAsync(serviceName: string, parameters: GenericObject = {}, cache: boolean = false, suppressLogging: boolean = false): void {
+        ServiceEngine.run(serviceName, parameters, cache, suppressLogging)
         .catch(err => {
             DebugUtil.logError(err, ServiceUtil.moduleName);
         });

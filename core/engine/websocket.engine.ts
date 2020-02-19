@@ -94,6 +94,12 @@ export class WSEngine {
             }
         })
     }
+
+    public static safeSend(ws: WebSocket, message: GenericObject) {
+        if (ws.readyState === ws.OPEN) {
+            ws.send(JSON.stringify(message));
+        }
+    }
 }
 
 export abstract class WSController {

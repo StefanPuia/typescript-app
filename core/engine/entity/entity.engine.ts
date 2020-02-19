@@ -611,7 +611,7 @@ export class EntityEngine {
     }
 
     public static parseOrderBy(_field: string): OrderByField {
-        const field = this.parseField(_field);
+        const field = EntityEngine.parseField(_field);
         const orderBy: OrderByField = {
             name: field.name,
             asc: true

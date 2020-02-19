@@ -91,7 +91,13 @@ entityController.get("/delete/:entityName", safe(async (req: Request, res: Respo
 
 entityController.post("/insert/:entityName", safeJSON(async (req: Request, res: Response) => {
     let entity = EntityEngine.getEntityDefinition(req.params.entityName);
-    const value = new GenericValue(entity.name, req.body.inserts);
+    const data: GenericObject = {};
+    for (const key of Object.keys(req.body.inserts)) {
+        if (req.body.inserts[key]) {
+            data[key] = req.body.inserts[key];
+        }
+    }
+    const value = new GenericValue(entity.name, data);
     await value.insert();
     res.json({ status: "ok" });
 }));

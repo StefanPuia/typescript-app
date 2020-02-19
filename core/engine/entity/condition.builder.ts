@@ -146,12 +146,12 @@ export class ConditionBuilder {
 
     public in(field: string, value: Array<any>): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        return this.appendCondition(`${this.sanitizeField(field)} in ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} in (?)`, value);
     }
 
     public notIn(field: string, value: Array<any>): ConditionBuilder {
         this.queueForValidation(field, value, true);
-        return this.appendCondition(`${this.sanitizeField(field)} not in ?`, value);
+        return this.appendCondition(`${this.sanitizeField(field)} not in (?)`, value);
     }
 
     public setEntity(entity: string | DynamicEntity): ConditionBuilder {

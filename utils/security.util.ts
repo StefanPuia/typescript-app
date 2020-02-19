@@ -83,7 +83,6 @@ export abstract class SecurityUtil {
     }
 
     public static socialLogin(req:Request, res: Response, userData: GenericObject) {
-        console.log(userData)
         return new Promise((resolve, reject) => {
             const ecb = ConditionBuilder.create()
                 .eq("OA.provider", userData.provider)
@@ -94,7 +93,6 @@ export abstract class SecurityUtil {
                 .innerJoin("OA", "Oauth", "userLoginId", "UL.userLoginId")
                 .where(ecb).queryFirst()
             .then(user => {
-                console.log(user)
                 if(user) {
                     req.session!.userLoginId = user.get("userLoginId");
                     req.session!.userName = user.get("fullName") || user.get("userName");

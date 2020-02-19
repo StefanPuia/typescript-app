@@ -43,7 +43,8 @@ export class ServiceEngine {
     public static run(serviceName: string): Promise<any>;
     public static run(serviceName: string, parameters: GenericObject): Promise<any>;
     public static run(serviceName: string, parameters: GenericObject, cache: boolean): Promise<any>;
-    public static run(serviceName: string, parameters: GenericObject = {}, cache?: boolean): Promise<any> {
+    public static run(serviceName: string, parameters: GenericObject, cache: boolean, suppressLogging: boolean): Promise<any>;
+    public static run(serviceName: string, parameters: GenericObject = {}, cache?: boolean, suppressLogging?: boolean): Promise<any> {
         return new Promise((resolve, reject) => {
             let service = this.getService(serviceName);
             let serviceStart = new Date().getTime();
@@ -52,7 +53,7 @@ export class ServiceEngine {
             let parameterList: Array<any> = ServiceEngine.validateInParameters(serviceName, parameters);
             runServiceFunction.apply(this, [serviceName, parameterList])
             .then((data: any) => {
-                if (!data.cached) {
+                if (!data.cached && suppressLogging !== true) {
                     DebugUtil.logTiming(`Ran service ${serviceName}`, serviceStart, undefined, ServiceEngine.moduleName);
                 }
                 let outData = {};
