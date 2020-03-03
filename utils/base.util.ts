@@ -179,4 +179,23 @@ export abstract class BaseUtil {
         }
         return (prependQM ? "?" : "") + search.join("&");
     }
+
+    public static breakQueryString(query: string): GenericObject {
+        if (query.substr(0, 1) === "?") {
+            query = query.substr(1);
+        }
+        const params: GenericObject = {};
+        for (const group of query.split("&")) {
+            const args = group.split("=");
+            let lhs: any = decodeURIComponent(args[0]);
+            let rhs: any = decodeURIComponent(args[1]);
+            if (rhs) {
+                if (rhs.indexOf(",") > -1) {
+                    rhs = rhs.split(",");
+                }
+            }
+            params[lhs] = rhs;
+        }
+        return params;
+    }
 }

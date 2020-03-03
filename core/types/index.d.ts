@@ -94,8 +94,9 @@ type Condition = {
 type JoinOperator = "AND" | "OR";
 
 type DynamicDefinition = {
-    alias: string | undefined,
-    name: string
+    alias?: string,
+    name: string,
+    fieldAlias?: string
 }
 
 type JoinCondition = {

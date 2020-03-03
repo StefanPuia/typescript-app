@@ -67,7 +67,7 @@ export class DynamicEntity {
 
     public fieldExists(_field: string): DynamicDefinition {
         const field = EntityEngine.parseField(_field);
-        const validField = this.fields.find(f => f.name === field.name);
+        const validField = this.fields.find(f => f.name === field.name || f.fieldAlias === field.name);
         if (!validField) {
             throw new Error(`Field '${_field}' does not exist on the dynamic entity.`);
         }

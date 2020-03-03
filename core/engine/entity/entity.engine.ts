@@ -495,7 +495,7 @@ export class EntityEngine {
                 if (!entityDef) {
                     throw new Error(`Could not find the entity definition for field '${_field}'`);
                 }
-                const definition = entityDef.fields.find(f => f.name === field.name);
+                const definition = entityDef.fields.find(f => f.name === dynamicDef.name);
                 if (!definition) {
                     throw new Error(`Could not find the field definition for '${_field}' on '${entityDef.name}' entity.`);
                 }
@@ -595,19 +595,11 @@ export class EntityEngine {
     }
 
     public static parseField(_field: string): DynamicDefinition {
-        const parts = _field.trim().split(".").filter(x => x.trim() !== "");
-        let alias = undefined;
-        let field = "";
-        if (parts.length === 1) {
-            field = parts[0];
-        } else if (parts.length === 2) {
-            alias = parts[0];
-            field = parts[1];
-        } else {
-            throw new Error(`'${_field}' is not a valid field definition.`);
+        let match = _field.trim().match(/^(?:([\w\d]+)\.)?([\w\d*]+)(?: [aA][sS] ([\w\d]+))?$/);
+        if (match && match[2]) {
+            return { alias: match[1], name: match[2], fieldAlias: match[3] };
         }
-
-        return { alias: alias, name: field };
+        throw new Error(`'${_field}' is not a valid field definition.`);
     }
 
     public static parseOrderBy(_field: string): OrderByField {

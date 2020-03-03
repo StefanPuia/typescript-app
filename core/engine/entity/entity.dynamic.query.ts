@@ -48,14 +48,12 @@ export class EntityDynamicQuery {
         return this;
     }
 
-    public innerJoin(alias: string, entity: string, usingField: string): EntityDynamicQuery;
     public innerJoin(alias: string, entity: string, tableField: string, relField: string): EntityDynamicQuery;
     public innerJoin(alias: string, entity: string, conditions: Array<JoinCondition>): EntityDynamicQuery;
     public innerJoin(alias: string, entity: string, cond: any, relField?: string): EntityDynamicQuery {
         return this.join("INNER", alias, entity, cond, relField);
     }
 
-    public outerJoin(alias: string, entity: string, usingField: string): EntityDynamicQuery;
     public outerJoin(alias: string, entity: string, tableField: string, relField: string): EntityDynamicQuery;
     public outerJoin(alias: string, entity: string, conditions: Array<JoinCondition>): EntityDynamicQuery;
     public outerJoin(alias: string, entity: string, cond: any, relField?: string): EntityDynamicQuery {
@@ -122,7 +120,9 @@ export class EntityDynamicQuery {
         return this;
     }
 
-    public cache(cache: boolean): EntityDynamicQuery {
+    public cache(): EntityDynamicQuery;
+    public cache(cache: boolean): EntityDynamicQuery;
+    public cache(cache: boolean = false): EntityDynamicQuery {
         this.doCache = cache;
         return this;
     }
@@ -194,7 +194,13 @@ export class EntityDynamicQuery {
         return joinCond.length ? `on (${joinCond.join(" and ")})` : "";
     }
 
-    private buildField(field: DynamicDefinition | OrderByField): string {
-        return (field.alias ? field.alias : this.dynamicEntity.getBaseAlias()) + "." + CaseUtil.camelToSnake(field.name);
+    private buildField(field: DynamicDefinition): string
+    private buildField(field: OrderByField): string
+    private buildField(_field: any): string {
+        let field = (_field.alias ? _field.alias : this.dynamicEntity.getBaseAlias()) + "." + CaseUtil.camelToSnake(_field.name);
+        if (_field.fieldAlias) {
+            field = field + " AS " + CaseUtil.camelToSnake(_field.fieldAlias);
+        }
+        return field;
     }
 }

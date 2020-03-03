@@ -104,6 +104,11 @@ export class ConditionBuilder {
         return this.appendCondition(`${this.sanitizeField(field)} = ?`, value);
     }
 
+    public notEq(field: string, value: any): ConditionBuilder {
+        this.queueForValidation(field, value, true);
+        return this.appendCondition(`${this.sanitizeField(field)} <> ?`, value);
+    }
+
     public gt(field: string, value: any): ConditionBuilder {
         this.queueForValidation(field, value, true);
         return this.appendCondition(`${this.sanitizeField(field)} > ?`, value);

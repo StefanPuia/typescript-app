@@ -114,7 +114,7 @@ export class CacheEngine {
                 }
             } else {
                 for (let cacheKey in CacheEngine.getInstance().storage[type]) {
-                    CacheEngine.clear(type, cacheKey);
+                    delete CacheEngine.getInstance().storage[type][cacheKey];
                 }
             }
         } else {
