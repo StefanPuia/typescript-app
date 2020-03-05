@@ -391,6 +391,38 @@ export class EntityEngine {
         })
     }
 
+    public static execute(query: string = '', inserts: Array<any> = [], cache: boolean = false, applyCase: boolean = false): Promise<any> {
+        return new Promise((resolve, reject) => {
+            let queryStart = new Date().getTime();
+            query = query.replace(/\s+/gm, ' ');
+            let sql = EntityEngine.getInstance().mysqlConnection.format(query, inserts);
+            let logSql = BaseConfig.logFullQuery ? sql : query;
+
+            let func: Function = EntityEngine.getInstance().query;
+            if (cache) func = EntityEngine.getInstance().cacheQuery;
+            func.apply(EntityEngine.getInstance(), [sql, inserts]).then((result: any) => {
+                if (!result.cached) {
+                    DebugUtil.logTiming(`Ran query ${logSql}`, queryStart, undefined, 'EntityEngine.Transact');
+                }
+                if (applyCase) {
+                    if (result.data instanceof Array) {
+                        resolve(result.data.map((obj: any) => EntityEngine.resultsCaseChange(obj)));
+                    } else {
+                        resolve(EntityEngine.resultsCaseChange(result.data));
+                    }
+                } else {
+                    resolve(result.data);
+                }
+            }).catch((err: any) => {
+                DebugUtil.logError(err, 'EntityEngine.Execute');
+                return EntityEngine.getInstance().mysqlConnection.rollback(() => {
+                    DebugUtil.logError('Rolling back transaction. ' + logSql, 'EntityEngine.Transact');
+                    reject(err);
+                });
+            })
+        })
+    }
+
     public static transact(query: string = '', inserts: Array<any> = [], reject: Function = DebugUtil.logInfo,
         resolve: Function = DebugUtil.logError, cache: boolean = false, applyCase: boolean = true): void {
 
