@@ -8,6 +8,12 @@ type DatabaseConnection = {
     multipleStatements?: boolean
 }
 
+type SSLConfig = {
+    key: Buffer,
+    cert: Buffer,
+    passphrase?: string
+}
+
 type CookieSettings = {
     secret: string,
     cookie: {
