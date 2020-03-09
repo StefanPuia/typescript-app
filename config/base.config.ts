@@ -14,5 +14,6 @@ export abstract class BaseConfig {
     public static databaseMode: number = 0; // 0 - ignore, 1 - create, 2 - extend, 3 - rebuild
     public static enableFrameworkController: boolean = true;
     public static morganExtraIgnore: Array<string> = [];
+    public static oauthRedirectPrefix: string;
     public static sslConfig?: SSLConfig;
 }
