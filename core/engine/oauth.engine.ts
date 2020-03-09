@@ -34,7 +34,8 @@ export abstract class OAuthEngine {
                     scope: this.scope
                 }, false, ["scope"]),
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
                 }
             }).then(res => res.json())
             .then(data => {

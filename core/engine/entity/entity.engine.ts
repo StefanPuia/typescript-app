@@ -2,7 +2,7 @@ import { DebugUtil } from '../../../utils/debug.util';
 import { BaseUtil } from '../../../utils/base.util';
 import { BaseConfig } from '../../../config/base.config';
 import { CacheEngine } from '../cache.engine';
-import { Connection, createConnection } from "mysql";
+import { Connection, createConnection, escape as mysqlEscape } from "mysql";
 import { CaseUtil } from '../../../utils/case.util';
 import { GenericValue } from './generic.value';
 import { TypeEngine } from '../type.engine';
@@ -587,8 +587,7 @@ export class EntityEngine {
     public static insert(values: Array<GenericValue>): Promise<any> {
         return new Promise((resolve, reject) => {
             const statements: Array<SQLStatement> = values.map(EntityEngine.makeInsertStatement);
-            const inserts: Array<any> = statements.map(s => s.inserts);
-            EntityEngine.transact(statements.map(s => s.sql).join(";"), [inserts], reject, (results: any) => {
+            EntityEngine.transact(statements.join(";"), [], reject, (results: any) => {
                 if (results instanceof Array) {
                     resolve(results.map(res => res.insertid));
                 } else {
@@ -601,8 +600,7 @@ export class EntityEngine {
     public static update(values: Array<GenericValue>): Promise<any> {
         return new Promise((resolve, reject) => {
             const statements: Array<SQLStatement> = values.map(EntityEngine.makeUpdateStatement);
-            const inserts: Array<any> = statements.map(s => s.inserts);
-            EntityEngine.transact(statements.map(s => s.sql).join(";"), [].concat.apply([], inserts), reject, (results: any) => {
+            EntityEngine.transact(statements.join(";"), [], reject, (results: any) => {
                 if (results instanceof Array) {
                     resolve(results.map(res => res.affectedrows));
                 } else {
@@ -615,8 +613,7 @@ export class EntityEngine {
     public static delete(values: Array<GenericValue>): Promise<any> {
         return new Promise((resolve, reject) => {
             const statements: Array<SQLStatement> = values.map(EntityEngine.makeRemoveStatement);
-            const inserts: Array<any> = statements.map(s => s.inserts);
-            EntityEngine.transact(statements.map(s => s.sql).join(";"), [].concat.apply([], inserts), reject, (results: any) => {
+            EntityEngine.transact(statements.join(";"), [], reject, (results: any) => {
                 if (results instanceof Array) {
                     resolve(results.map(res => res.affectedrows));
                 } else {
@@ -671,8 +668,8 @@ export class EntityEngine {
             throw new Error(`Entity '${entity}' not defined.`);
         }
         const data = value.getData();
-        const sql = `insert into ${entityDef.name} (${Object.keys(data).map(CaseUtil.camelToSnake).join(",")}) values ?`;
-        return { sql: sql, inserts: Object.values(data)}
+        return `insert into ${entityDef.name} (${Object.keys(data).map(CaseUtil.camelToSnake).join(",")})
+            values (${Object.values(data).map(x => mysqlEscape(x))})`;
     }
 
     private static makeUpdateStatement(value: GenericValue): SQLStatement {
@@ -701,8 +698,9 @@ export class EntityEngine {
                 pkData[sqlKey] = data[key];
             }
         }
-        const sql = `update ${entityDef.name} set ? where ?`;
-        return { sql: sql, inserts: [setData, pkData] }
+        const setDataSQL = Object.keys(setData).map(key => `${key} = ${mysqlEscape(setData[key])}`).join(", ");
+        const pkDataSQL = Object.keys(pkData).map(key => `${key} = ${mysqlEscape(pkData[key])}`).join(", ");
+        return `update ${entityDef.name} set ${setDataSQL} where ${pkDataSQL}`;
     }
 
     private static makeRemoveStatement(value: GenericValue): SQLStatement {
@@ -728,12 +726,9 @@ export class EntityEngine {
                 pkData[sqlKey] = data[key];
             }
         }
-        const sql = `delete from ${entityDef.name} where ${Object.keys(pkData).map(key => `${key} = ?`).join(" and ")}`;
-        return { sql: sql, inserts: Object.values(pkData) }
+        const pkDataSQL = Object.keys(pkData).map(key => `${key} = ${mysqlEscape(pkData[key])}`).join(" and ");
+        return `delete from ${entityDef.name} where ${pkDataSQL}`;
     }
 }
 
-type SQLStatement = {
-    sql: string,
-    inserts: Array<any> | GenericObject
-}
+type SQLStatement = string

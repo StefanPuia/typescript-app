@@ -100,15 +100,16 @@ export abstract class SecurityUtil {
                 } else {
                     const userLogin = new GenericValue("UserLogin", {
                         fullName: userData.name,
+                        userName: userData.userName || "",
                         picture: userData.picture
                     })
-                    userLogin.store().then(userLoginId => {
+                    userLogin.insert().then(userLoginId => {
                         const oauth = new GenericValue("Oauth", {
                             userLoginId: userLoginId,
                             provider: userData.provider,
                             id: userData.socialId
                         })
-                        oauth.store().then(() => {
+                        oauth.insert().then(() => {
                             req.session!.userLoginId = userLoginId;
                             req.session!.userName = userData.name;
                             resolve();
