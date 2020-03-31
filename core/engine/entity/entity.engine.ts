@@ -2,7 +2,7 @@ import { DebugUtil } from '../../../utils/debug.util';
 import { BaseUtil } from '../../../utils/base.util';
 import { BaseConfig } from '../../../config/base.config';
 import { CacheEngine } from '../cache.engine';
-import { Connection, createConnection, escape as mysqlEscape } from "mysql";
+import { Connection, createConnection, escape as mysqlEscape, ConnectionConfig } from 'mysql';
 import { CaseUtil } from '../../../utils/case.util';
 import { GenericValue } from './generic.value';
 import { TypeEngine } from '../type.engine';
@@ -14,7 +14,7 @@ export class EntityEngine {
     private initialized: boolean = false;
 
     private static databaseFormatMode: number = 0;
-    private static databaseConfig: DatabaseConnection;
+    private static databaseConfig: ConnectionConfig;
     private static entityDefinitions: Array<EntityDefinition>;
     private static publicEntityDefinitions: Array<EntityDefinition>;
     private static initCallback: Function;
@@ -56,7 +56,7 @@ export class EntityEngine {
         }
     }
 
-    public static initSettings(databaseConfig: DatabaseConnection, entityDefinitions: Array<EntityDefinition>,
+    public static initSettings(databaseConfig: ConnectionConfig, entityDefinitions: Array<EntityDefinition>,
             databaseFormatMode: number, initCallback: Function) {
         EntityEngine.databaseConfig = databaseConfig;
         for (const entity of entityDefinitions) {

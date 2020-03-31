@@ -1,13 +1,5 @@
 type GenericObject = { [key: string]: any };
 
-type DatabaseConnection = {
-    host: string,
-    database: string,
-    user: string,
-    password: string,
-    multipleStatements?: boolean
-}
-
 type SSLConfig = {
     key: Buffer,
     cert: Buffer,

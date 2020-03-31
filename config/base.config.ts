@@ -1,4 +1,5 @@
 import path from 'path';
+import { ConnectionConfig } from 'mysql';
 
 export abstract class BaseConfig {
     public static logFullQuery: boolean = false;
@@ -8,7 +9,7 @@ export abstract class BaseConfig {
     public static logLevel: number = 0;
     public static cacheViews: boolean = false;
     public static screenErrorHandler?: Function;
-    public static databaseConfig: DatabaseConnection;
+    public static databaseConfig: ConnectionConfig;
     public static cookieSettings: CookieSettings;
     public static passwordSalt: string;
     public static databaseMode: number = 0; // 0 - ignore, 1 - create, 2 - extend, 3 - rebuild

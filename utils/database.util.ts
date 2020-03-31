@@ -1,8 +1,9 @@
 import { DebugUtil } from './debug.util';
 import { EntityEngine } from '../core/engine/entity/entity.engine';
+import { ConnectionConfig } from 'mysql';
 
 export abstract class DatabaseUtil {
-    public static init(databaseConfig: DatabaseConnection, databaseFormatMode: number, 
+    public static init(databaseConfig: ConnectionConfig, databaseFormatMode: number, 
             entityDefinitions: Array<EntityDefinition>, afterInit: Function = () => {}): void {
         EntityEngine.initSettings(databaseConfig, entityDefinitions, databaseFormatMode, afterInit);
     }
