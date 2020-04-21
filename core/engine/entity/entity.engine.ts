@@ -95,17 +95,18 @@ export class EntityEngine {
     }
 
     private handleDisconnect(): void {
-        this.mysqlConnection = createConnection(EntityEngine.databaseConfig);
+        const self = this;
+        self.mysqlConnection = createConnection(EntityEngine.databaseConfig);
 
-        this.mysqlConnection.connect((err: any) => {
+        self.mysqlConnection.connect((err: any) => {
             if (err) {
                 DebugUtil.logFatal(err, 'EntityEngine');
-                setTimeout(this.handleDisconnect, 2000);
+                setTimeout(self.handleDisconnect, 2000);
             } else {
-                if (!this.initialized) {
-                    this.initialized = true;
+                if (!self.initialized) {
+                    self.initialized = true;
                     DebugUtil.logInfo('Entity Engine initialized successfully', EntityEngine.moduleName);
-                    this.reformatTables().then((reformatted: any) => {
+                    self.reformatTables().then((reformatted: any) => {
                         if (reformatted) {
                             DebugUtil.logInfo('Table reformat complete', EntityEngine.moduleName);
                         }

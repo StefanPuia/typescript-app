@@ -109,7 +109,7 @@ export abstract class BaseUtil {
             tokens.url(req, res),
             tokens.method(req, res),
             tokens.status(req, res),
-            `[${req.ip || req.ip || (req.connection && req.connection.remoteAddress) || "0.0.0.0"}]`
+            `[${req.headers["X-Real-IP"] || req.ip || (req.connection && req.connection.remoteAddress) || "0.0.0.0"}]`
         ].join(' '), "INFO", "Request");
     }
 

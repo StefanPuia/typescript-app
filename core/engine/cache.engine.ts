@@ -130,7 +130,7 @@ export class CacheEngine {
         for (let parameter of parameters) {
             if (typeof parameter === "string") {
                 stringList.push(parameter);
-            } else if (parameter.hasOwnProperty("toString")) {
+            } else if (typeof parameter !== "undefined" && parameter.hasOwnProperty("toString")) {
                 stringList.push(parameter.toString());
             } else {
                 stringList.push(JSON.stringify(parameter));

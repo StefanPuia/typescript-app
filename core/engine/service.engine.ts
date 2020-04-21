@@ -56,10 +56,8 @@ export class ServiceEngine {
                 if (!data.cached && suppressLogging !== true) {
                     DebugUtil.logTiming(`Ran service ${serviceName}`, serviceStart, undefined, ServiceEngine.moduleName);
                 }
-                let outData = {};
-                Object.assign(outData, data.data);
-                ServiceEngine.validateOutParameters(serviceName, outData);
-                resolve(data.data);
+                ServiceEngine.validateOutParameters(serviceName, { ...data.data });
+                resolve({ ...data.data });
             }).catch(reject);
         });
     }
