@@ -100,7 +100,7 @@ export abstract class SecurityUtil {
                 } else {
                     const userLogin = new GenericValue("UserLogin", {
                         fullName: userData.name,
-                        userName: userData.userName || "",
+                        userName: userData.userName || (userData.name + "_" + userData.socialId).substr(0, 45),
                         picture: userData.picture
                     })
                     userLogin.insert().then(userLoginId => {
