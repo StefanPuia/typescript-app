@@ -700,7 +700,7 @@ export class EntityEngine {
             }
         }
         const setDataSQL = Object.keys(setData).map(key => `${key} = ${mysqlEscape(setData[key])}`).join(", ");
-        const pkDataSQL = Object.keys(pkData).map(key => `${key} = ${mysqlEscape(pkData[key])}`).join(", ");
+        const pkDataSQL = Object.keys(pkData).map(key => `${key} = ${mysqlEscape(pkData[key])}`).join(" AND ");
         return `update ${entityDef.name} set ${setDataSQL} where ${pkDataSQL}`;
     }
 
