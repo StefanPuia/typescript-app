@@ -425,6 +425,44 @@ export class EntityEngine {
         })
     }
 
+    public static wrapTransaction(databaseActions: Function, ...args: any) {
+        return new Promise((resolve, reject) => {
+            EntityEngine.getInstance().mysqlConnection.beginTransaction((beginTransactionError: any) => {
+                if (beginTransactionError) {
+                    DebugUtil.logError('Error initiating transaction. Rolling back wrapper.', 'EntityEngine.wrapTransaction');
+                    return reject(beginTransactionError);
+                }
+                try {
+                    let asyncFunc: any = async () => {};
+                    const functionResult = databaseActions(...args);
+                    if (!(functionResult instanceof Promise)) {
+                        asyncFunc = async () => { return functionResult };
+                    } else {
+                        asyncFunc = functionResult;
+                    }
+                    asyncFunc.then((results: any) => {
+                        EntityEngine.getInstance().mysqlConnection.commit((commitError: any) => {
+                            if (commitError) {
+                                return EntityEngine.getInstance().mysqlConnection.rollback(() => {
+                                    DebugUtil.logError('Error commiting transaction. Rolling back wrapper.', 'EntityEngine.wrapTransaction');
+                                    reject(commitError);
+                                });
+                            }
+                            resolve(results);
+                        })
+                    }).catch((dbActionsError: any) => {
+                        EntityEngine.getInstance().mysqlConnection.rollback(() => {
+                            DebugUtil.logError('Error executing content. Rolling back wrapper.', 'EntityEngine.wrapTransaction');
+                            reject(dbActionsError);
+                        });
+                    });
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
     public static transact(query: string = '', inserts: Array<any> = [], reject: Function = DebugUtil.logInfo,
         resolve: Function = DebugUtil.logError, cache: boolean = false, applyCase: boolean = true): void {
 
@@ -587,6 +625,7 @@ export class EntityEngine {
     }
 
     public static async store(values: Array<GenericValue>): Promise<any> {
+        const results: Array<any> = [];
         for (const value of values) {
             const entity = value.getEntity();
             if (entity instanceof DynamicEntity) {
@@ -595,50 +634,47 @@ export class EntityEngine {
             const { entityDef, setData, pkData } = EntityEngine.getGenericValueSQLFields(value);
             const valueExists = await EntityQuery.from(entity).where(EntityEngine.makeValueWhereClause(pkData)).queryFirst();
             if (valueExists) {
-                EntityEngine.update([value]);
+                results.push(await EntityEngine.update([value]));
             } else {
-                EntityEngine.insert([value]);
+                results.push(await EntityEngine.insert([value]));
             }
+        }
+        if (results.length === 1) {
+            return results[0];
+        } else if (results.length === 0) {
+            return undefined;
+        }
+        return results;
+    }
+
+    public static async insert(values: Array<GenericValue>): Promise<any> {
+        const statements: Array<SQLStatement> = values.map(EntityEngine.makeInsertStatement);
+        const results = await EntityEngine.execute(statements.join(";"), []);
+        if (results instanceof Array) {
+            return results.map(res => res.insertId);
+        } else {
+            return results.insertId;
         }
     }
 
-    public static insert(values: Array<GenericValue>): Promise<any> {
-        return new Promise((resolve, reject) => {
-            const statements: Array<SQLStatement> = values.map(EntityEngine.makeInsertStatement);
-            EntityEngine.transact(statements.join(";"), [], reject, (results: any) => {
-                if (results instanceof Array) {
-                    resolve(results.map(res => res.insertid));
-                } else {
-                    resolve(results.insertid);
-                }
-            });
-        })
+    public static async update(values: Array<GenericValue>): Promise<any> {
+        const statements: Array<SQLStatement> = values.map(EntityEngine.makeUpdateStatement);
+        const results = await EntityEngine.execute(statements.join(";"), []);
+        if (results instanceof Array) {
+            return results.map(res => res.affectedRows);
+        } else {
+            return results.affectedRows;
+        }
     }
 
-    public static update(values: Array<GenericValue>): Promise<any> {
-        return new Promise((resolve, reject) => {
-            const statements: Array<SQLStatement> = values.map(EntityEngine.makeUpdateStatement);
-            EntityEngine.transact(statements.join(";"), [], reject, (results: any) => {
-                if (results instanceof Array) {
-                    resolve(results.map(res => res.affectedrows));
-                } else {
-                    resolve(results.affectedrows);
-                }
-            });
-        })
-    }
-
-    public static delete(values: Array<GenericValue>): Promise<any> {
-        return new Promise((resolve, reject) => {
-            const statements: Array<SQLStatement> = values.map(EntityEngine.makeRemoveStatement);
-            EntityEngine.transact(statements.join(";"), [], reject, (results: any) => {
-                if (results instanceof Array) {
-                    resolve(results.map(res => res.affectedrows));
-                } else {
-                    resolve(results.affectedrows);
-                }
-            });
-        })
+    public static async delete(values: Array<GenericValue>): Promise<any> {
+        const statements: Array<SQLStatement> = values.map(EntityEngine.makeRemoveStatement);
+        const results = await EntityEngine.execute(statements.join(";"), []);
+        if (results instanceof Array) {
+            return results.map(res => res.affectedRows);
+        } else {
+            return results.affectedRows;
+        }
     }
 
     public static parseField(_field: string): DynamicDefinition {
@@ -692,7 +728,7 @@ export class EntityEngine {
         delete data.lastUpdatedStamp;
         const setData: GenericObject = {};
         const pkData: GenericObject = {};
-        for (const key of Object.keys(data)) {
+        for (const key in data) {
             const sqlKey = CaseUtil.camelToSnake(key);
             const fieldDef = entityDef.fields.find(f => f.name === sqlKey);
             if (!fieldDef) {
@@ -702,6 +738,12 @@ export class EntityEngine {
                 setData[sqlKey] = data[key];
             } else {
                 pkData[sqlKey] = data[key];
+            }
+        }
+
+        for (const field of entityDef.fields) {
+            if (field.primaryKey) {
+                if (!pkData[field.name]) pkData[field.name] = null;
             }
         }
 

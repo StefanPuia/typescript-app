@@ -65,13 +65,6 @@ export class GenericValue {
         if (this.entity instanceof DynamicEntity) {
             throw new Error(`Store method not available for dynamic entities.`);
         }
-        return new Promise((resolve, reject) => {
-            this.insert()
-            .then(resolve)
-            .catch(err => {
-                DebugUtil.logWarning(err, GenericValue.moduleName);
-                this.update().then(resolve).catch(reject);
-            })
-        })
+        return EntityEngine.store([ this ]);
     }
 }
