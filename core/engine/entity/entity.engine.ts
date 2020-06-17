@@ -52,6 +52,8 @@ export class EntityEngine {
     }]
 
     private constructor() {
+        this.handleDisconnect = this.handleDisconnect.bind(this);
+        this.reformatTables = this.reformatTables.bind(this);
         if (!this.initialized) {
             this.handleDisconnect();
         }
@@ -96,33 +98,42 @@ export class EntityEngine {
     }
 
     private handleDisconnect(): void {
-        const self = this;
-        self.mysqlConnection = createConnection(EntityEngine.databaseConfig);
+        this.mysqlConnection = createConnection(EntityEngine.databaseConfig);
 
-        self.mysqlConnection.connect((err: any) => {
-            if (err) {
-                DebugUtil.logFatal(err, 'EntityEngine');
-                setTimeout(self.handleDisconnect, 2000);
-            } else {
-                if (!self.initialized) {
-                    self.initialized = true;
-                    DebugUtil.logInfo('Entity Engine initialized successfully', EntityEngine.moduleName);
-                    self.reformatTables().then((reformatted: any) => {
-                        if (reformatted) {
-                            DebugUtil.logInfo('Table reformat complete', EntityEngine.moduleName);
-                        }
-                        EntityEngine.initCallback();
-                    }).catch(err => {
-                        DebugUtil.logError(err, EntityEngine.moduleName);
-                    });
+        try {
+            this.mysqlConnection.connect((err: any) => {
+                if (err) {
+                    DebugUtil.logFatal(err, 'EntityEngine');
+                    setTimeout(this.handleDisconnect, 2000);
+                } else {
+                    if (!this.initialized) {
+                        this.initialized = true;
+                        DebugUtil.logInfo('Entity Engine initialized successfully', EntityEngine.moduleName);
+                        this.reformatTables().then((reformatted: any) => {
+                            if (reformatted) {
+                                DebugUtil.logInfo('Table reformat complete', EntityEngine.moduleName);
+                            }
+                            EntityEngine.initCallback();
+                        }).catch(err => {
+                            DebugUtil.logError(err, EntityEngine.moduleName);
+                        });
+                    }
                 }
-            }
-        });
+            });
 
-        this.mysqlConnection.on('error', (err: any) => {
-            DebugUtil.logFatal(err, EntityEngine.moduleName);
+            this.mysqlConnection.on('error', (err: any) => {
+                DebugUtil.logFatal(err, EntityEngine.moduleName);
+                setTimeout(this.handleDisconnect, 10000);
+            });
+
+            this.mysqlConnection.on("end", (err: any) => {
+                DebugUtil.logFatal(err, EntityEngine.moduleName);
+                setTimeout(this.handleDisconnect, 10000);
+            });
+        } catch (err) {
+            DebugUtil.logFatal(err, "EntityEngine");
             setTimeout(this.handleDisconnect, 10000);
-        });
+        }
     }
 
     public static getEntityNames(): Array<string> {
