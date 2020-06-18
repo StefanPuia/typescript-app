@@ -20,6 +20,7 @@ export class EntityEngine {
     private static publicEntityDefinitions: Array<EntityDefinition>;
     private static initCallback: Function;
     private static instance: EntityEngine;
+    private reconnecting: boolean = false;
     
     public static readonly MODE = {
         REBUILD: 3,
@@ -98,13 +99,16 @@ export class EntityEngine {
     }
 
     private handleDisconnect(): void {
-        this.mysqlConnection = createConnection(EntityEngine.databaseConfig);
+        if (!this.initialized) {
+            this.mysqlConnection = createConnection(EntityEngine.databaseConfig);
+        }
 
         try {
             this.mysqlConnection.connect((err: any) => {
+                this.reconnecting = false;
                 if (err) {
-                    DebugUtil.logFatal(err, 'EntityEngine');
-                    setTimeout(this.handleDisconnect, 2000);
+                    DebugUtil.logFatal(err, 'EntityEngine.Connect');
+                    this.tryReconnect();
                 } else {
                     if (!this.initialized) {
                         this.initialized = true;
@@ -115,23 +119,31 @@ export class EntityEngine {
                             }
                             EntityEngine.initCallback();
                         }).catch(err => {
-                            DebugUtil.logError(err, EntityEngine.moduleName);
+                            DebugUtil.logError(err, "EntityEngine.ReformatTables");
                         });
                     }
                 }
             });
 
             this.mysqlConnection.on('error', (err: any) => {
-                DebugUtil.logFatal(err, EntityEngine.moduleName);
-                setTimeout(this.handleDisconnect, 10000);
+                DebugUtil.logFatal(err, "EntityEngine.ConnError");
+                this.tryReconnect();
             });
 
             this.mysqlConnection.on("end", (err: any) => {
-                DebugUtil.logFatal(err, EntityEngine.moduleName);
-                setTimeout(this.handleDisconnect, 10000);
+                this.initialized = false;
+                DebugUtil.logFatal(err, "EntityEngine.ConnEnd");
+                this.tryReconnect();
             });
         } catch (err) {
-            DebugUtil.logFatal(err, "EntityEngine");
+            DebugUtil.logFatal(err, "EntityEngine.ConnCreate");
+            this.tryReconnect();
+        }
+    }
+
+    private tryReconnect() {
+        if (!this.reconnecting) {
+            this.reconnecting = true;
             setTimeout(this.handleDisconnect, 10000);
         }
     }
